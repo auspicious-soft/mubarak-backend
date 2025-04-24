@@ -1,9 +1,9 @@
 import { Response } from "express";
-import { storeModel } from "../../models/store/store-schema";
 import { errorResponseHandler } from "../../lib/errors/error-response-handler";
 import { httpStatusCode } from "../../lib/constant";
 import bcrypt from "bcryptjs";
 import { queryBuilder } from "../../utils";
+import { storeModel } from "../../models/stores/stores-schema";
 
 // Create Store
 export const createStoreService = async (payload: any, res: Response) => {

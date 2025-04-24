@@ -8,8 +8,8 @@ import { queryBuilder } from "../../utils";
 import { passwordResetTokenModel } from './../../models/password-token-schema';
 import { sendPasswordResetEmail } from './../../utils/mails/mail';
 import { generatePasswordResetToken, getPasswordResetTokenByToken } from './../../utils/mails/token';
-import { storeModel } from "../../models/store/store-schema";
 import { generatePasswordResetTokenByPhoneWithTwilio } from "../../utils/sms/sms";
+import { storeModel } from "../../models/stores/stores-schema";
 
 
 export const loginService = async (payload: any, res: Response) => {

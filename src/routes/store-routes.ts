@@ -22,16 +22,10 @@ router.get("/", getAdminDetails);
 // router.get("/dashboard", getDashboardStats);
 
 
-//stores routes
-router.route("/stores").post(createStore).get(getAllStores);
-router.route("/stores/:id").get(getStoreById).put(updateStore).delete(deleteStore);
 
 //store-products routes
-router.route("/store-products").get(getAllStoreProducts);
-router.route("/store-products/:id").get(getStoreProductById).delete(deleteStoreProduct);
+router.route("/store-products").post(createStoreProduct).get(getAllStoreProducts);
+router.route("/store-products/:id").get(getStoreProductById).put(updateStoreProduct).delete(deleteStoreProduct);
 
-//promotions routes
-router.route("/promotions").post(createPromotion).get(getAllPromotions);
-router.route("/promotions/:id").get(getPromotionById).put(updatePromotion).delete(deletePromotion);
 
 export { router };
