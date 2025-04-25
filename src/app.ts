@@ -4,14 +4,12 @@ import cors from "cors"
 import path from "path"
 import { fileURLToPath } from 'url'
 import connectDB from "./config/db"
-import { admin } from "./routes"
+import { admin, user, userProducts } from "./routes"
 // import admin from "firebase-admin"
-import { checkValidAdminRole, checkValidPublisherRole } from "./utils"
+import { checkValidAdminRole } from "./utils"
 import bodyParser from 'body-parser'
 import { forgotPassword, login, newPassswordAfterOTPVerified, verifyOtpPasswordReset } from "./controllers/admin/admin-controller"
-// import { login, newPassswordAfterOTPVerified } from "./controllers/admin/admin-controller"
-// import { forgotPassword } from "./controllers/admin/admin-controller"
-// import {  verifyOtpPasswordReset, forgotPasswordUser, newPassswordAfterOTPVerifiedUser,verifyOTP, resendOTP, loginUser, userSignup, WhatsapploginUser } from "./controllers/user/user-controller";
+
 // import { checkAuth,checkPublisherAuth } from "./middleware/check-auth"
 
 // Create __dirname equivalent for ES modules
@@ -59,9 +57,10 @@ app.get("/", (_, res: any) => {
     res.send("Hello world entry point 🚀✅");
 });
 
-app.use("/api/admin",checkValidAdminRole, admin);
+app.use("/api/admin", checkValidAdminRole, admin);
 // app.use("/api/publisher",checkValidPublisherRole,checkPublisherAuth, publisher);
-// app.use("/api/user",checkAuth, user);
+app.use("/api/user", user);
+app.use("/api/user-products", userProducts);
 
 //adminAuth routes
 app.post("/api/login", login)
@@ -71,12 +70,11 @@ app.patch("/api/new-password-otp-verified", newPassswordAfterOTPVerified)
 
 // //userAuth routes
 // app.post("/api/user-login", loginUser)
-// app.post("/api/whatsapp-login", WhatsapploginUser)
-// app.post("/api/user-signup", userSignup)  
+// app.post("/api/user-signup", userSignup)
 // app.post("/api/user-verify-otp", verifyOTP)
 // app.post("/api/resend-otp", resendOTP)
 // app.post("/api/user-forgot-password", forgotPasswordUser)
-// app.patch("/api/user-new-password-otp-verified", newPassswordAfterOTPVerifiedUser)
+// app.patch("/api/user-new-password-otp-verified", newPasswordAfterOTPVerifiedUser)
 
 // initializeFirebase()
 app.listen(PORT, () => console.log(`Server is listening on port ${PORT}`));

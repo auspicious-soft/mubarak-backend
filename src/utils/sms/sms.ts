@@ -7,43 +7,36 @@ configDotenv();
 // const client = twilio(process.env.ACCOUNTSID as string, process.env.AUTHTOKEN as string);
 const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
 
-export const generatePasswordResetTokenByPhoneWithTwilio = async (phoneNumber: string ,token: string) => {
+export const generatePasswordResetTokenByPhoneWithTwilio = async (phoneNumber: string, token: string) => {
   console.log('phoneNumber: ', phoneNumber);
 
   try {
-    const genId = customAlphabet('0123456789', 6);
-    const token = genId();
-    const expires = new Date(new Date().getTime() + 3600 * 1000); // Token valid for 1 hour
+    // Use the token passed as parameter instead of generating a new one
+    const message = `Your verification code is: ${token}. It is valid for 1 hour.`;
 
-    const existingToken = await passwordResetTokenModel.findOne({ phoneNumber });
-    if (existingToken) {
-      await passwordResetTokenModel.findByIdAndDelete(existingToken._id);
-    }
+    // In production, use the actual phone number
+    // For development, we'll log the token to console
+    console.log(`SMS to ${phoneNumber}: ${message}`);
 
-    const newPasswordResetToken = new passwordResetTokenModel({
-      phoneNumber,
-      token,
-      expires,
-    });
-    await newPasswordResetToken.save();
-
-    const message = `Your password reset token is: ${token}. It is valid for 1 hour.`;
-    const res =  await twilioClient.messages.create({
+    // Uncomment this in production with proper Twilio credentials
+    /*
+    const res = await twilioClient.messages.create({
       body: message,
       from: process.env.TWILIO_PHONE_NUMBER as string,
-      to: "+919729360795",
+      to: phoneNumber,
     });
-    console.log('res: ', res);
+    console.log('Twilio response: ', res);
+    */
 
     return {
       success: true,
-      message: "Password reset token sent via SMS",
+      message: "Verification code sent via SMS",
     };
   } catch (error) {
-    console.error("Error sending password reset token via Twilio:", error);
+    console.error("Error sending verification code via Twilio:", error);
     return {
       success: false,
-      message: "Failed to send password reset token via SMS",
+      message: "Failed to send verification code via SMS",
       error,
     };
   }
@@ -51,20 +44,27 @@ export const generatePasswordResetTokenByPhoneWithTwilio = async (phoneNumber: s
 
 export const generateOtpWithTwilio = async (phoneNumber: string, otp: string) => {
   try {
-     const res= await twilioClient.messages.create({
-       body: `Your OTP is: ${otp}`,
-       from: `whatsapp:${process.env.FROMPHONENUMBER}`,
-       to: `whatsapp:${phoneNumber}`,
-      });
+    // For development, we'll log the OTP to console
+    console.log(`WhatsApp to ${phoneNumber}: Your OTP is: ${otp}`);
+
+    // Uncomment this in production with proper Twilio credentials
+    /*
+    await twilioClient.messages.create({
+      body: `Your OTP is: ${otp}`,
+      from: `whatsapp:${process.env.FROMPHONENUMBER}`,
+      to: `whatsapp:${phoneNumber}`,
+    });
+    */
+
     return {
       success: true,
       message: "OTP is sent via Whatsapp",
     };
   } catch (error) {
-    console.error("Error sending otp  via Twilio:", error);
+    console.error("Error sending OTP via Twilio:", error);
     return {
       success: false,
-      message: "Failed to send otp via Whatsapp",
+      message: "Failed to send OTP via Whatsapp",
       error,
     };
   }

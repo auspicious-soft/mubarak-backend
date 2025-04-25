@@ -93,8 +93,8 @@ const storeProductSchema = new Schema({
     trim: true
   },
   image: {
-    type: String,
-    required: true,
+    type: [String],
+    // required: true,
     trim: true
   },
   priceDetails: {
