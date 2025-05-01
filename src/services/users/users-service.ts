@@ -235,6 +235,7 @@ export const getAllUsersService = async (payload: any) => {
 
     // Get search query from queryBuilder
     let { query, sort } = queryBuilder(payload, ["fullName", "email"]);
+    //TODO add lastest date of order
 
     const totalUsers = await usersModel.countDocuments(query);
     const users = await usersModel
@@ -264,7 +265,8 @@ export const getAllUsersService = async (payload: any) => {
 export const getUserByIdService = async (id: string, res: Response) => {
   try {
     const user = await usersModel.findById(id).select("-password");
-
+    //TODO add orders
+    //TODO: return Total Revenue Generated, Most Sold Product,Total Products Listed,Products Sold and list of products
     if (!user) {
       return errorResponseHandler("User not found", httpStatusCode.NOT_FOUND, res);
     }

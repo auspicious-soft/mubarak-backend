@@ -15,12 +15,16 @@ import {
   updatePromotion,
   deletePromotion
 } from "../controllers/promotion/promotion-controller";
+import { getAllUsers, getUserById } from "../controllers/users/users-controller";
 
 const router = Router();
 
 router.get("/", getAdminDetails);
 // router.get("/dashboard", getDashboardStats);
 
+//users routes
+router.route("/users").get(getAllUsers);
+router.route("/users/:id").get(getUserById);
 
 //stores routes
 router.route("/stores").post(createStore).get(getAllStores);
