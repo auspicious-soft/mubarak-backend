@@ -12,16 +12,16 @@ import {
 const router = Router();
 
 // Create a new product
-router.post("/", createUserProduct);
+// router.post("/", createUserProduct);
 
 // Get all products (with filtering and pagination)
-router.get("/", getAllUserProducts);
+// router.get("/", getAllUserProducts);
 
 // Get products by user ID
 router.get("/user/:userId", getUserProductsByUserId);
 
 // Get my products (for authenticated user)
-router.get("/my-products", getUserProductsByUserId);
+// router.get("/my-products", getUserProductsByUserId);
 
 // Get, update, delete product by ID
 router.route("/:id")
@@ -30,6 +30,6 @@ router.route("/:id")
   .delete(deleteUserProduct);
 
 // Update product status
-router.patch("/:id/status", updateUserProductStatus);
+// router.patch("/:id/status", updateUserProductStatus);
 
 export { router };

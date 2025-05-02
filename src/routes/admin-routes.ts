@@ -16,6 +16,7 @@ import {
   deletePromotion
 } from "../controllers/promotion/promotion-controller";
 import { getAllUsers, getUserById } from "../controllers/users/users-controller";
+import { deleteUserProduct, getUserProductById, getUserProductsByUserId, updateUserProduct } from "../controllers/user-products/user-products-controller";
 
 const router = Router();
 
@@ -25,6 +26,10 @@ router.get("/", getAdminDetails);
 //users routes
 router.route("/users").get(getAllUsers);
 router.route("/users/:id").get(getUserById);
+router.get("/user/:userId/products", getUserProductsByUserId);
+router.route("/user-products/:id")
+  .get(getUserProductById)
+  .delete(deleteUserProduct);
 
 //stores routes
 router.route("/stores").post(createStore).get(getAllStores);
@@ -37,5 +42,6 @@ router.route("/store-products/:id").get(getStoreProductById).delete(deleteStoreP
 //promotions routes
 router.route("/promotions").post(createPromotion).get(getAllPromotions);
 router.route("/promotions/:id").get(getPromotionById).put(updatePromotion).delete(deletePromotion);
+
 
 export { router };

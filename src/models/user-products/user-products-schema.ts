@@ -4,31 +4,6 @@ import { customAlphabet } from "nanoid";
 const identifier = customAlphabet("0123456789", 5);
 const Schema = mongoose.Schema;
 
-// Schema for Contact Information
-const contactInfoSchema = new Schema({
-  sellerName: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  phoneNumber: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  whatsappNumber: {
-    type: String,
-    required: false,
-    trim: true
-  },
-  location: {
-    type: String,
-    required: true,
-    trim: true
-  }
-});
-
-// Main User Product Schema
 const userProductSchema = new Schema({
   identifier: {
     type: String,
@@ -40,7 +15,7 @@ const userProductSchema = new Schema({
     ref: 'user',
     required: true
   },
-  title: {
+  productName: {
     type: String,
     required: true,
     trim: true
@@ -51,6 +26,11 @@ const userProductSchema = new Schema({
     min: 0
   },
   description: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  longDescription: {
     type: String,
     required: true,
     trim: true
@@ -66,54 +46,34 @@ const userProductSchema = new Schema({
     //   message: 'At least one image is required.'
     // }
   },
-  // More images section
-  // moreImages: {
-  //   type: [String],
-  //   default: []
-  // },
-  // Contact information
-  contactInfo: {
-    type: contactInfoSchema,
-    required: true
-  },
-  // Status of the product (active, sold, etc.)
-  status: {
+
+  phoneNumber: {
     type: String,
-    enum: ['active', 'sold', 'pending', 'inactive'],
-    default: 'active'
+    required: true,
+    trim: true
   },
-  // Category of the product
-  category: {
+  whatsappNumber: {
     type: String,
     required: false,
     trim: true
   },
-  // Tags for better searchability
-  tags: {
-    type: [String],
-    default: []
+  email: {
+    type: String,
+    required: true,
+    lowercase: true,
+    trim: true
   },
-  // Timestamps
-  createdAt: {
-    type: Date,
-    default: Date.now
+
+  exchanges: {
+    type: String,
+    trim: true
   },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
+  estimatedDelivery: {
+    type: String,
+    required: false,
+    trim: true
+  },
+
 }, { timestamps: true });
-
-// Middleware to update the updatedAt field on save
-// userProductSchema.pre('save', function(next) {
-//   this.updatedAt = new Date();
-//   next();
-// });
-
-// Create indexes for better search performance
-// userProductSchema.index({ title: 'text', description: 'text', tags: 'text' });
-// userProductSchema.index({ userId: 1 });
-// userProductSchema.index({ status: 1 });
-// userProductSchema.index({ createdAt: -1 });
 
 export const userProductModel = mongoose.model("userProduct", userProductSchema);

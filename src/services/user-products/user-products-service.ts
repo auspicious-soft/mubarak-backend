@@ -39,17 +39,8 @@ export const getAllUserProductsService = async (query: any) => {
     const offset = (page - 1) * limit;
 
     // Get search query from queryBuilder
-    let { query: searchQuery, sort } = queryBuilder(query, ["title", "description"]);
+    let { query: searchQuery, sort } = queryBuilder(query, ["title", "description"]) as { query: { [key: string]: any; price?: { $gte?: number; $lte?: number } }, sort: any };
 
-    // Add status filter if provided
-    if (query.status) {
-      searchQuery.status = query.status;
-    }
-
-    // Add category filter if provided
-    if (query.category) {
-      searchQuery.category = query.category;
-    }
 
     // Add price range filter if provided
     if (query.minPrice || query.maxPrice) {
@@ -92,13 +83,7 @@ export const getUserProductsByUserIdService = async (userId: string, query: any)
     const limit = parseInt(query.limit as string) || 10;
     const offset = (page - 1) * limit;
 
-    // Add userId to the search query
-    const searchQuery = { userId };
-
-    // Add status filter if provided
-    if (query.status) {
-      searchQuery.status = query.status;
-    }
+    const searchQuery = { userId }; 
 
     const totalProducts = await userProductModel.countDocuments(searchQuery);
     const products = await userProductModel
@@ -180,13 +165,13 @@ export const updateUserProductService = async (productId: string, payload: any, 
 };
 
 // Delete product
-export const deleteUserProductService = async (productId: string, userId: string, res: Response) => {
+export const deleteUserProductService = async (productId: string, res: Response) => {
   try {
     // Check if product exists and belongs to the user
-    const product = await userProductModel.findOne({ _id: productId, userId });
+    const product = await userProductModel.findOne({ _id: productId });
     
     if (!product) {
-      return errorResponseHandler("Product not found or you don't have permission to delete it", httpStatusCode.NOT_FOUND, res);
+      return errorResponseHandler("Product not found ", httpStatusCode.NOT_FOUND, res);
     }
 
     // Delete the product
@@ -216,16 +201,9 @@ export const updateUserProductStatusService = async (productId: string, status: 
       return errorResponseHandler("Product not found or you don't have permission to update it", httpStatusCode.NOT_FOUND, res);
     }
 
-    // Validate status
-    const validStatuses = ['active', 'sold', 'pending', 'inactive'];
-    if (!validStatuses.includes(status)) {
-      return errorResponseHandler("Invalid status value", httpStatusCode.BAD_REQUEST, res);
-    }
-
-    // Update the product status
     const updatedProduct = await userProductModel.findByIdAndUpdate(
       productId,
-      { status, updatedAt: new Date() },
+      { updatedAt: new Date() },
       { new: true }
     );
 

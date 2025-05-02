@@ -49,9 +49,11 @@ export const getAllUserProducts = async (req: Request, res: Response) => {
 
 // Get user products by user ID
 export const getUserProductsByUserId = async (req: Request, res: Response) => {
+  console.log('req: ', req);
   try {
-    // Get userId from authenticated user or from params
+    //TODO - userID by token
     const userId = req.params.userId || (req as any).user?.id;
+    console.log('userId: ', userId);
 
     if (!userId) {
       return res.status(httpStatusCode.BAD_REQUEST).json({
@@ -87,8 +89,8 @@ export const getUserProductById = async (req: Request, res: Response) => {
 export const updateUserProduct = async (req: Request, res: Response) => {
   try {
     // Get userId from authenticated user
-    const userId = (req as any).user?.id || req.body.userId;
-
+    // const userId = (req as any).user?.id || req.body.userId;
+  const userId = "60d5f3f5c7b8e1234567890a"
     if (!userId) {
       return res.status(httpStatusCode.UNAUTHORIZED).json({
         success: false,
@@ -110,16 +112,16 @@ export const updateUserProduct = async (req: Request, res: Response) => {
 export const deleteUserProduct = async (req: Request, res: Response) => {
   try {
     // Get userId from authenticated user
-    const userId = (req as any).user?.id || req.body.userId;
+    // const userId = (req as any).user?.id || req.body.userId;
 
-    if (!userId) {
-      return res.status(httpStatusCode.UNAUTHORIZED).json({
-        success: false,
-        message: "User not authenticated"
-      });
-    }
+    // if (!userId) {
+    //   return res.status(httpStatusCode.UNAUTHORIZED).json({
+    //     success: false,
+    //     message: "User not authenticated"
+    //   });
+    // }
 
-    const response = await deleteUserProductService(req.params.id, userId, res);
+    const response = await deleteUserProductService(req.params.id, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);

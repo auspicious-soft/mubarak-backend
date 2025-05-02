@@ -60,7 +60,7 @@ app.get("/", (_, res: any) => {
 app.use("/api/admin", checkValidAdminRole, admin);
 // app.use("/api/publisher",checkValidPublisherRole,checkPublisherAuth, publisher);
 app.use("/api/user", user);
-app.use("/api/user-products", userProducts);
+// app.use("/api/user-products", userProducts);
 
 //adminAuth routes
 app.post("/api/login", login)
