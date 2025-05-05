@@ -11,11 +11,11 @@ export const checkValidAdminRole = (req: Request, res: Response, next: any) => {
   if (role !== "admin") return res.status(403).json({ success: false, message: "Invalid role" });
   else return next();
 };
-// export const checkValidUserRole = (req: Request, res: Response, next: any) => {
-//   const { role } = req.headers;
-//   if (role !== "publisher") return res.status(403).json({ success: false, message: "Invalid role" });
-//   else return next();
-// };
+export const checkValidStoreRole = (req: Request, res: Response, next: any) => {
+  const { role } = req.headers;
+  if (role !== "store") return res.status(403).json({ success: false, message: "Invalid role" });
+  else return next();
+};
 
 interface Payload {
   description?: string;

@@ -34,7 +34,7 @@ router.route("/user-products/:id")
   .delete(deleteUserProduct);
 
 //Open-market routes
-router.get("/open-market", getAllUserProducts);
+router.get("/open-market/products", getAllUserProducts);
 
 
 export { router };

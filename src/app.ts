@@ -4,9 +4,9 @@ import cors from "cors"
 import path from "path"
 import { fileURLToPath } from 'url'
 import connectDB from "./config/db"
-import { admin, user, userProducts } from "./routes"
+import { admin, store, user } from "./routes"
 // import admin from "firebase-admin"
-import { checkValidAdminRole } from "./utils"
+import { checkValidAdminRole, checkValidStoreRole } from "./utils"
 import bodyParser from 'body-parser'
 import { forgotPassword, login, newPassswordAfterOTPVerified, verifyOtpPasswordReset } from "./controllers/admin/admin-controller"
 
@@ -58,7 +58,7 @@ app.get("/", (_, res: any) => {
 });
 
 app.use("/api/admin", checkValidAdminRole, admin);
-// app.use("/api/publisher",checkValidPublisherRole,checkPublisherAuth, publisher);
+app.use("/api/store", checkValidStoreRole, store);
 app.use("/api/user", user);
 // app.use("/api/user-products", userProducts);
 

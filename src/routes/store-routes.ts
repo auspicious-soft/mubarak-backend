@@ -1,6 +1,6 @@
 import { Router } from "express";
 import {  getAdminDetails,  } from "../controllers/admin/admin-controller";
-import { createStore, deleteStore, getAllStores, getStoreById, updateStore } from "../controllers/stores/store-controller";
+import { createStore, deleteStore, getAllStores, getStoreById, getStoreProfile, updateStore } from "../controllers/stores/store-controller";
 import {
   createStoreProduct,
   getAllStoreProducts,
@@ -8,19 +8,13 @@ import {
   updateStoreProduct,
   deleteStoreProduct
 } from "../controllers/store-products/store-products-controller";
-import {
-  createPromotion,
-  getAllPromotions,
-  getPromotionById,
-  updatePromotion,
-  deletePromotion
-} from "../controllers/promotion/promotion-controller";
+
 
 const router = Router();
 
-router.get("/", getAdminDetails);
-// router.get("/dashboard", getDashboardStats);
+router.route("/profile/:id").get(getStoreProfile).put(updateStore);
 
+// router.get("/dashboard", getDashboardStats);
 
 
 //store-products routes

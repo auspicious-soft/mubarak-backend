@@ -7,7 +7,8 @@ import {
   getAllStoresService,
   getStoreByIdService,
   updateStoreService,
-  deleteStoreService
+  deleteStoreService,
+  getStoreProfileService
 } from "../../services/stores/stores-service";
 
 
@@ -41,6 +42,17 @@ export const getAllStores = async (req: Request, res: Response) => {
 export const getStoreById = async (req: Request, res: Response) => {
   try {
     const response = await getStoreByIdService(req.params.id, res);
+    return res.status(httpStatusCode.OK).json(response);
+  } catch (error: any) {
+    const { code, message } = errorParser(error);
+    return res
+      .status(code || httpStatusCode.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: message || "An error occurred" });
+  }
+};
+export const getStoreProfile = async (req: Request, res: Response) => {
+  try {
+    const response = await getStoreProfileService(req.params.id, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);

@@ -6,218 +6,203 @@ import { userProductModel } from "../../models/user-products/user-products-schem
 
 // Create a new user product
 export const createUserProductService = async (payload: any, userId: string, res: Response) => {
-  try {
-    // Add userId to the payload
-    const productData = {
-      ...payload,
-      userId
-    };
+  const productData = {
+    ...payload,
+    userId
+  };
 
-    // Create the product
-    const product = await userProductModel.create(productData);
+  const product = await userProductModel.create(productData);
 
-    return {
-      success: true,
-      message: "Product created successfully",
-      data: product
-    };
-  } catch (error) {
-    console.error("Error creating product:", error);
-    return errorResponseHandler(
-      "Failed to create product",
-      httpStatusCode.INTERNAL_SERVER_ERROR,
-      res
-    );
-  }
+  return {
+    success: true,
+    message: "Product created successfully",
+    data: product
+  };
 };
 
-// Get all user products (with pagination and filtering)
 export const getAllUserProductsService = async (query: any) => {
-  try {
-    const page = parseInt(query.page as string) || 1;
-    const limit = parseInt(query.limit as string) || 10;
-    const offset = (page - 1) * limit;
+  const page = parseInt(query.page as string) || 1;
+  const limit = parseInt(query.limit as string) || 10;
+  const offset = (page - 1) * limit;
 
-    // Get search query from queryBuilder
-    let { query: searchQuery, sort } = queryBuilder(query, ["title", "description"]) as { query: { [key: string]: any; price?: { $gte?: number; $lte?: number } }, sort: any };
+  let { query: searchQuery, sort } = queryBuilder(query, ["productName"]) as { query: { [key: string]: any; price?: { $gte?: number; $lte?: number } }, sort: any };
 
-
-    // Add price range filter if provided
-    if (query.minPrice || query.maxPrice) {
-      searchQuery.price = {};
-      if (query.minPrice) {
-        searchQuery.price.$gte = parseFloat(query.minPrice as string);
-      }
-      if (query.maxPrice) {
-        searchQuery.price.$lte = parseFloat(query.maxPrice as string);
-      }
+  // Handle price filtering (min/max)
+  if (query.minPrice || query.maxPrice) {
+    searchQuery.price = {};
+    if (query.minPrice) {
+      searchQuery.price.$gte = parseFloat(query.minPrice as string);
     }
-
-    const totalProducts = await userProductModel.countDocuments(searchQuery);
-    const products = await userProductModel
-      .find(searchQuery)
-      .sort(sort)
-      .skip(offset)
-      .limit(limit);
-
-    return {
-      success: true,
-      message: "Products retrieved successfully",
-      data: {
-        products,
-        page,
-        limit,
-        total: totalProducts
-      }
-    };
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    throw error;
+    if (query.maxPrice) {
+      searchQuery.price.$lte = parseFloat(query.maxPrice as string);
+    }
   }
+
+  // Handle price sorting (low to high / high to low)
+  if (query.priceSort) {
+    if (query.priceSort === 'asc' || query.priceSort === 'low') {
+      sort = { price: 1, ...sort };
+    } else if (query.priceSort === 'desc' || query.priceSort === 'high') {
+      sort = { price: -1, ...sort };
+    }
+  }
+
+  const totalProducts = await userProductModel.countDocuments(searchQuery);
+  const products = await userProductModel
+    .find(searchQuery)
+    .sort(sort)
+    .skip(offset)
+    .limit(limit);
+
+  return {
+    success: true,
+    message: "Products retrieved successfully",
+    data: {
+      products,
+      page,
+      limit,
+      total: totalProducts
+    }
+  };
 };
+
+// export const getAllUserProductsService = async (query: any) => {
+//   const page = parseInt(query.page as string) || 1;
+//   const limit = parseInt(query.limit as string) || 10;
+//   const offset = (page - 1) * limit;
+
+//   let { query: searchQuery, sort } = queryBuilder(query, ["productName"]) as { query: { [key: string]: any; price?: { $gte?: number; $lte?: number } }, sort: any };
+
+//   if (query.minPrice || query.maxPrice) {
+//     searchQuery.price = {};
+//     if (query.minPrice) {
+//       searchQuery.price.$gte = parseFloat(query.minPrice as string);
+//     }
+//     if (query.maxPrice) {
+//       searchQuery.price.$lte = parseFloat(query.maxPrice as string);
+//     }
+//   }
+
+//   const totalProducts = await userProductModel.countDocuments(searchQuery);
+//   const products = await userProductModel
+//     .find(searchQuery)
+//     .sort(sort)
+//     .skip(offset)
+//     .limit(limit);
+
+//   return {
+//     success: true,
+//     message: "Products retrieved successfully",
+//     data: {
+//       products,
+//       page,
+//       limit,
+//       total: totalProducts
+//     }
+//   };
+// };
 
 // Get user products by user ID
-export const getUserProductsByUserIdService = async (userId: string, query: any) => {
-  try {
-    const page = parseInt(query.page as string) || 1;
-    const limit = parseInt(query.limit as string) || 10;
-    const offset = (page - 1) * limit;
+export const getUserProductsByUserIdService = async ( userId: string, payload: any) => {
+  const page = parseInt(payload.page as string) || 1;
+  const limit = parseInt(payload.limit as string) || 10;
+  const offset = (page - 1) * limit;
+  let { query } = queryBuilder(payload, ["productName"]);
 
-    const searchQuery = { userId }; 
+  const totalProducts = await userProductModel.countDocuments({userId,...query});
+  const products = await userProductModel
+    .find({userId,...query})
+    .sort({ createdAt: -1 })
+    .skip(offset)
+    .limit(limit);
 
-    const totalProducts = await userProductModel.countDocuments(searchQuery);
-    const products = await userProductModel
-      .find(searchQuery)
-      .sort({ createdAt: -1 })
-      .skip(offset)
-      .limit(limit);
-
-    return {
-      success: true,
-      message: "User products retrieved successfully",
-      data: {
-        products,
-        page,
-        limit,
-        total: totalProducts
-      }
-    };
-  } catch (error) {
-    console.error("Error fetching user products:", error);
-    throw error;
-  }
+  return {
+    success: true,
+    message: "User products retrieved successfully",
+    data: {
+      products,
+      page,
+      limit,
+      total: totalProducts
+    }
+  };
 };
 
 // Get product by ID
 export const getUserProductByIdService = async (productId: string, res: Response) => {
-  try {
-    const product = await userProductModel.findById(productId);
+  const product = await userProductModel.findById(productId);
 
-    if (!product) {
-      return errorResponseHandler("Product not found", httpStatusCode.NOT_FOUND, res);
-    }
-
-    return {
-      success: true,
-      message: "Product retrieved successfully",
-      data: product
-    };
-  } catch (error) {
-    console.error("Error fetching product:", error);
-    return errorResponseHandler(
-      "Failed to retrieve product",
-      httpStatusCode.INTERNAL_SERVER_ERROR,
-      res
-    );
+  if (!product) {
+    return errorResponseHandler("Product not found", httpStatusCode.NOT_FOUND, res);
   }
+
+  return {
+    success: true,
+    message: "Product retrieved successfully",
+    data: product
+  };
 };
 
 // Update product
 export const updateUserProductService = async (productId: string, payload: any, userId: string, res: Response) => {
-  try {
-    // Check if product exists and belongs to the user
-    const product = await userProductModel.findOne({ _id: productId, userId });
-    
-    if (!product) {
-      return errorResponseHandler("Product not found or you don't have permission to update it", httpStatusCode.NOT_FOUND, res);
-    }
+  // Check if product exists and belongs to the user
+  const product = await userProductModel.findOne({ _id: productId, userId });
 
-    // Update the product
-    const updatedProduct = await userProductModel.findByIdAndUpdate(
-      productId,
-      { ...payload, updatedAt: new Date() },
-      { new: true }
-    );
-
-    return {
-      success: true,
-      message: "Product updated successfully",
-      data: updatedProduct
-    };
-  } catch (error) {
-    console.error("Error updating product:", error);
-    return errorResponseHandler(
-      "Failed to update product",
-      httpStatusCode.INTERNAL_SERVER_ERROR,
-      res
-    );
+  if (!product) {
+    return errorResponseHandler("Product not found or you don't have permission to update it", httpStatusCode.NOT_FOUND, res);
   }
+
+  // Update the product
+  const updatedProduct = await userProductModel.findByIdAndUpdate(
+    productId,
+    { ...payload, updatedAt: new Date() },
+    { new: true }
+  );
+
+  return {
+    success: true,
+    message: "Product updated successfully",
+    data: updatedProduct
+  };
 };
 
 // Delete product
 export const deleteUserProductService = async (productId: string, res: Response) => {
-  try {
-    // Check if product exists and belongs to the user
-    const product = await userProductModel.findOne({ _id: productId });
-    
-    if (!product) {
-      return errorResponseHandler("Product not found ", httpStatusCode.NOT_FOUND, res);
-    }
+  // Check if product exists and belongs to the user
+  const product = await userProductModel.findOne({ _id: productId });
 
-    // Delete the product
-    await userProductModel.findByIdAndDelete(productId);
-
-    return {
-      success: true,
-      message: "Product deleted successfully"
-    };
-  } catch (error) {
-    console.error("Error deleting product:", error);
-    return errorResponseHandler(
-      "Failed to delete product",
-      httpStatusCode.INTERNAL_SERVER_ERROR,
-      res
-    );
+  if (!product) {
+    return errorResponseHandler("Product not found", httpStatusCode.NOT_FOUND, res);
   }
+
+  // Delete the product
+  await userProductModel.findByIdAndDelete(productId);
+
+  return {
+    success: true,
+    message: "Product deleted successfully"
+  };
 };
 
 // Update product status
 export const updateUserProductStatusService = async (productId: string, status: string, userId: string, res: Response) => {
-  try {
-    // Check if product exists and belongs to the user
-    const product = await userProductModel.findOne({ _id: productId, userId });
-    
-    if (!product) {
-      return errorResponseHandler("Product not found or you don't have permission to update it", httpStatusCode.NOT_FOUND, res);
-    }
+  // Check if product exists and belongs to the user
+  const product = await userProductModel.findOne({ _id: productId, userId });
 
-    const updatedProduct = await userProductModel.findByIdAndUpdate(
-      productId,
-      { updatedAt: new Date() },
-      { new: true }
-    );
-
-    return {
-      success: true,
-      message: "Product status updated successfully",
-      data: updatedProduct
-    };
-  } catch (error) {
-    console.error("Error updating product status:", error);
-    return errorResponseHandler(
-      "Failed to update product status",
-      httpStatusCode.INTERNAL_SERVER_ERROR,
-      res
-    );
+  if (!product) {
+    return errorResponseHandler("Product not found or you don't have permission to update it", httpStatusCode.NOT_FOUND, res);
   }
+
+  // Update the product with the new status
+  const updatedProduct = await userProductModel.findByIdAndUpdate(
+    productId,
+    { status, updatedAt: new Date() },
+    { new: true }
+  );
+
+  return {
+    success: true,
+    message: "Product status updated successfully",
+    data: updatedProduct
+  };
 };

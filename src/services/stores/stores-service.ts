@@ -79,6 +79,19 @@ export const getStoreByIdService = async (id: string, res: Response) => {
     data: store
   };
 };
+export const getStoreProfileService = async (id: string, res: Response) => {
+  //TODO- get store id by the token
+  const store = await storeModel.findById(id);
+  if (!store) {
+    return errorResponseHandler("Store not found", httpStatusCode.NOT_FOUND, res);
+  }
+
+  return {
+    success: true,
+    message: "Store retrieved successfully",
+    data: store
+  };
+};
 
 // Update Store
 export const updateStoreService = async (id: string, payload: any, res: Response) => {

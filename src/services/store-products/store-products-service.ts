@@ -6,10 +6,8 @@ import { storeProductModel } from "../../models/store-products/store-products-sc
 
 // Create Store Product
 export const createStoreProductService = async (payload: any, res: Response) => {
-  console.log('payload: ', payload);
   try {
     const {  storeId } = payload;
-
     // Check if storeId is provided
     if (!storeId) {
       return errorResponseHandler(
@@ -18,10 +16,7 @@ export const createStoreProductService = async (payload: any, res: Response) => 
         res
       );
     }
-
-
     const storeProduct = await storeProductModel.create(payload);
-
     return {
       success: true,
       message: "Store product created successfully",

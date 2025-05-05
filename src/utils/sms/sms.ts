@@ -8,8 +8,6 @@ configDotenv();
 const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
 
 export const generatePasswordResetTokenByPhoneWithTwilio = async (phoneNumber: string, token: string) => {
-  console.log('phoneNumber: ', phoneNumber);
-
   try {
     // Use the token passed as parameter instead of generating a new one
     const message = `Your verification code is: ${token}. It is valid for 1 hour.`;

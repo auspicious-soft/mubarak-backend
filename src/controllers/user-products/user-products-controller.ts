@@ -49,11 +49,9 @@ export const getAllUserProducts = async (req: Request, res: Response) => {
 
 // Get user products by user ID
 export const getUserProductsByUserId = async (req: Request, res: Response) => {
-  console.log('req: ', req);
   try {
     //TODO - userID by token
     const userId = req.params.userId || (req as any).user?.id;
-    console.log('userId: ', userId);
 
     if (!userId) {
       return res.status(httpStatusCode.BAD_REQUEST).json({

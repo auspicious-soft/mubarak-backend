@@ -12,7 +12,6 @@ import {
 // Create Store Product
 export const createStoreProduct = async (req: Request, res: Response) => {
   try {
-    console.log('req.body: ', req.body);
     const response = await createStoreProductService(req.body, res);
     return res.status(httpStatusCode.CREATED).json(response);
   } catch (error: any) {
