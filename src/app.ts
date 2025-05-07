@@ -1,6 +1,5 @@
 import express from "express"
 import cors from "cors"
-// import cookieParser from "cookie-parser";
 import path from "path"
 import { fileURLToPath } from 'url'
 import connectDB from "./config/db"
@@ -8,9 +7,8 @@ import { admin, store, user } from "./routes"
 // import admin from "firebase-admin"
 import { checkValidAdminRole, checkValidStoreRole } from "./utils"
 import bodyParser from 'body-parser'
-import { forgotPassword, login, newPassswordAfterOTPVerified, verifyOtpPasswordReset } from "./controllers/admin/admin-controller"
-
-// import { checkAuth,checkPublisherAuth } from "./middleware/check-auth"
+import cookieParser from 'cookie-parser'
+import { forgotPassword, login, logout, newPassswordAfterOTPVerified, verifyOtpPasswordReset } from "./controllers/admin/admin-controller"
 
 // Create __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url) // <-- Define __filename
@@ -27,7 +25,7 @@ app.use(bodyParser.json({
     req.rawBody = buf.toString();
   }
 }));
-// app.use(cookieParser());
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // admin.initializeApp({
@@ -36,12 +34,11 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
     cors({
-        origin: "*",
+        origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL || 'https://yourdomain.com' : 'http://localhost:3000',
         methods: ['GET', 'POST', 'PATCH', 'DELETE', 'PUT'],
         credentials: true,
     })
 );
-
 
 var dir = path.join(__dirname, 'static')
 app.use(express.static(dir))
@@ -49,9 +46,7 @@ app.use(express.static(dir))
 var uploadsDir = path.join(__dirname, 'uploads')
 app.use('/uploads', express.static(uploadsDir))
 
-
 connectDB();
-
 
 app.get("/", (_, res: any) => {
     res.send("Hello world entry point 🚀✅");
@@ -64,6 +59,7 @@ app.use("/api/user", user);
 
 //adminAuth routes
 app.post("/api/login", login)
+app.post("/api/logout", logout)
 app.post("/api/verify-otp", verifyOtpPasswordReset)
 app.post("/api/forgot-password", forgotPassword)
 app.patch("/api/new-password-otp-verified", newPassswordAfterOTPVerified)
@@ -77,4 +73,5 @@ app.patch("/api/new-password-otp-verified", newPassswordAfterOTPVerified)
 // app.patch("/api/user-new-password-otp-verified", newPasswordAfterOTPVerifiedUser)
 
 // initializeFirebase()
+
 app.listen(PORT, () => console.log(`Server is listening on port ${PORT}`));

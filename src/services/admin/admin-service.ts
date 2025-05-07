@@ -10,6 +10,7 @@ import { sendPasswordResetEmail } from './../../utils/mails/mail';
 import { generatePasswordResetToken, getPasswordResetTokenByToken } from './../../utils/mails/token';
 import { generatePasswordResetTokenByPhoneWithTwilio } from "../../utils/sms/sms";
 import { storeModel } from "../../models/stores/stores-schema";
+import jwt from "jsonwebtoken";
 
 
 export const loginService = async (payload: any, res: Response) => {
@@ -35,11 +36,31 @@ export const loginService = async (payload: any, res: Response) => {
   const userObject = user.toObject();
   delete userObject.password;
 
+  // Generate JWT token
+  const token = jwt.sign(
+    {
+      id: user._id,
+      role: user.role,
+      email: user.email || undefined
+    },
+    process.env.AUTH_SECRET as string,
+    { expiresIn: '1d' }
+  );
+
+  // Set token in cookie
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: process.env.COOKIE_SECURE === 'true', // Controlled by environment variable
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    sameSite: 'strict'
+  });
+
   return {
     success: true,
     message: "Login successful",
     data: {
       user: userObject,
+      token: token // Include token in response for clients that don't use cookies
     },
   };
 };
@@ -83,7 +104,7 @@ export const newPassswordAfterOTPVerifiedService = async (payload: { password: s
   if (hasExpired) return errorResponseHandler("OTP expired", httpStatusCode.BAD_REQUEST, res);
 
   let existingAdmin: any;
-  
+
   if (existingToken.phoneNumber) {
     existingAdmin = await adminModel.findOne({ phoneNumber: existingToken.phoneNumber });
   }
@@ -209,17 +230,17 @@ export const getNewUsersService = async (payload: any) => {
 //     const users = await usersModel   .find(usersDate ? { createdAt: { $gte: usersDate } } : {})
 //     .sort({ createdAt: -1 })
 //     .limit(10).select("-__v -password -otp -token -fcmToken -whatsappNumberVerified -emailVerified");
-    
+
 //       const userIds = users.map((user) => user._id);
 //       const awards = await awardsModel.find({ userId: { $in: userIds } }).select("userId level badge");
-    
+
 //       const awardsMap = new Map(awards.map((award) => [award.userId.toString(), award]));
-    
+
 //       const newestUsers = users.map((user) => ({
 //         ...user.toObject(),
 //         award: awardsMap.get(user._id.toString()) || null,
 //       }));
-    
+
 //     const newestEvents = await eventsModel
 //       .find(usersDate ? { createdAt: { $gte: usersDate } } : {})
 //       .sort({ createdAt: -1 })
