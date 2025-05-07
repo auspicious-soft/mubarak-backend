@@ -17,10 +17,11 @@ import {
 } from "../controllers/promotion/promotion-controller";
 import { getAllUsers, getUserById } from "../controllers/users/users-controller";
 import { deleteUserProduct, getUserProductById, getUserProductsByUserId, updateUserProduct } from "../controllers/user-products/user-products-controller";
+import { checkWebAuth } from "../middleware/check-auth";
 
 const router = Router();
 
-router.get("/", getAdminDetails);
+router.get("/",checkWebAuth, getAdminDetails);
 // router.get("/dashboard", getDashboardStats);
 
 //users routes

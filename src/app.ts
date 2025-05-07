@@ -9,6 +9,7 @@ import { checkValidAdminRole, checkValidStoreRole } from "./utils"
 import bodyParser from 'body-parser'
 import cookieParser from 'cookie-parser'
 import { forgotPassword, login, logout, newPassswordAfterOTPVerified, verifyOtpPasswordReset } from "./controllers/admin/admin-controller"
+import { checkWebAuth } from "./middleware/check-auth"
 
 // Create __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url) // <-- Define __filename
@@ -52,8 +53,8 @@ app.get("/", (_, res: any) => {
     res.send("Hello world entry point 🚀✅");
 });
 
-app.use("/api/admin", checkValidAdminRole, admin);
-app.use("/api/store", checkValidStoreRole, store);
+app.use("/api/admin", checkValidAdminRole, checkWebAuth, admin);
+app.use("/api/store", checkValidStoreRole, checkWebAuth, store);
 app.use("/api/user", user);
 // app.use("/api/user-products", userProducts);
 
