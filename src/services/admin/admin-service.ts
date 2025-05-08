@@ -108,7 +108,7 @@ export const newPassswordAfterOTPVerifiedService = async (payload: { password: s
   if (existingToken.email) {
     existingAdmin = await adminModel.findOne({ phoneNumber: existingToken.email });
   }
-  if (!existingAdmin) {
+  if (!existingAdmin) {  
     return errorResponseHandler("Admin account not found", httpStatusCode.NOT_FOUND, res);
   }
   const hashedPassword = await bcrypt.hash(password, 10);
