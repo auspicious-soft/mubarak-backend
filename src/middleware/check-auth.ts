@@ -14,7 +14,7 @@ declare global {
 }
 
 export const checkWebAuth = async (req: Request, res: Response, next: NextFunction) => {
-    const token = req.headers.authorization?.split(" ")[1]
+    const token = req.headers.authorization?.split(" ")[1] || req.cookies.token
     if (!token) return res.status(httpStatusCode.UNAUTHORIZED).json({ success: false, message: "Unauthorized token missing" })
 
     try {
@@ -28,7 +28,7 @@ export const checkWebAuth = async (req: Request, res: Response, next: NextFuncti
 }
 export const checkAuth = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const token = req.headers.authorization?.split(" ")[1]
+        const token = req.headers.authorization?.split(" ")[1] || req.cookies.token
         if (!token) return res.status(httpStatusCode.UNAUTHORIZED).json({ success: false, message: "Unauthorized token missing" })
 
         const isMobileApp = req.headers['x-client-type'] === 'mobile'

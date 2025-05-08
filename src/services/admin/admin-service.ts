@@ -73,7 +73,7 @@ export const forgotPasswordService = async (phoneNumber: string, res: Response) 
 
   if (passwordResetToken !== null) {
     await generatePasswordResetTokenByPhoneWithTwilio(phoneNumber, passwordResetToken.token);
-    return { success: true, message: "Password reset email sent with otp" };
+    return { success: true, message: "Password reset email sent with otp", status:200 };
   }
 };
 export const verifyOtpPasswordResetService = async (
@@ -91,7 +91,7 @@ export const verifyOtpPasswordResetService = async (
   const hasExpired = new Date(existingToken.expires) < new Date();
   if (hasExpired)
     return errorResponseHandler("OTP expired", httpStatusCode.BAD_REQUEST, res);
-  return { success: true, message: "Token verified successfully" };
+  return { success: true, message: "Token verified successfully", status:200 };
 };
 
 export const newPassswordAfterOTPVerifiedService = async (payload: { password: string; otp: string }, res: Response) => {
@@ -105,10 +105,12 @@ export const newPassswordAfterOTPVerifiedService = async (payload: { password: s
 
   let existingAdmin: any;
 
-  if (existingToken.phoneNumber) {
-    existingAdmin = await adminModel.findOne({ phoneNumber: existingToken.phoneNumber });
+  if (existingToken.email) {
+    existingAdmin = await adminModel.findOne({ phoneNumber: existingToken.email });
   }
-
+  if (!existingAdmin) {
+    return errorResponseHandler("Admin account not found", httpStatusCode.NOT_FOUND, res);
+  }
   const hashedPassword = await bcrypt.hash(password, 10);
   const response = await adminModel.findByIdAndUpdate(existingAdmin._id, { password: hashedPassword }, { new: true });
   await passwordResetTokenModel.findByIdAndDelete(existingToken._id);
@@ -117,6 +119,7 @@ export const newPassswordAfterOTPVerifiedService = async (payload: { password: s
     success: true,
     message: "Password updated successfully",
     data: response,
+    status:200,
   };
 };
 
