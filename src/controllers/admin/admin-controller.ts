@@ -48,8 +48,8 @@ export const getAdminDetails = async (req: Request, res: Response) => {
     }
 }
 
-export const forgotPassword = async (req: Request, res: Response) => {
-
+export const forgotPassword = async (req: Request, res: Response) => {  
+ 
     try {
         const response = await forgotPasswordService(req.body.phoneNumber, res)
         return res.status(httpStatusCode.OK).json(response)
