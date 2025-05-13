@@ -173,3 +173,43 @@ export const deleteStoreProductService = async (id: string, res: Response) => {
     );
   }
 };
+
+// Admin: Get Products by Store ID
+export const getStoreProductsByStoreIdForAdminService = async (storeId: string, payload: any) => {
+  try {
+    const page = parseInt(payload.page as string) || 1;
+    const limit = parseInt(payload.limit as string) || 10;
+    const offset = (page - 1) * limit;
+
+    // Create query with storeId filter
+    let { query: searchQuery, sort } = queryBuilder(payload, ["name", "shortDescription"]);
+    
+    // Combine with storeId
+    const query = { storeId, ...(Object.keys(searchQuery).length > 0 ? searchQuery : {}) };
+
+    const totalProducts = await storeProductModel.countDocuments(query);
+    const products = await storeProductModel
+      .find(query)
+      .sort(sort)
+      .skip(offset)
+      .limit(limit);
+
+    return {
+      success: true,
+      message: "Store products retrieved successfully",
+      data: {
+        products,
+        page,
+        limit,
+        total: totalProducts
+      }
+    };
+  } catch (error) {
+    console.error("Error fetching store products:", error);
+    return {
+      success: false,
+      message: "Failed to retrieve store products",
+      data: null
+    };
+  }
+};

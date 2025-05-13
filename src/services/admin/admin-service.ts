@@ -11,23 +11,23 @@ import { generatePasswordResetToken, getPasswordResetTokenByToken } from './../.
 import { generatePasswordResetTokenByPhoneWithTwilio } from "../../utils/sms/sms";
 import { storeModel } from "../../models/stores/stores-schema";
 import jwt from "jsonwebtoken";
-
-
+ 
+ 
 export const loginService = async (payload: any, res: Response) => {
   const { email, password } = payload;
   const countryCode = "+45";
   const toNumber = Number(email);
   const isEmail = isNaN(toNumber);
   let user: any = null;
-
+ 
   if (isEmail) {
     user = await adminModel.findOne({ email: email }).select("+password");
     if (!user) {
       user = await storeModel.findOne({ email: email }).select("+password");
     }
   }
-
-
+ 
+ 
   if (!user) return errorResponseHandler("User not found", httpStatusCode.NOT_FOUND, res);
   const isPasswordValid = await bcrypt.compare(password, user.password);
   if (!isPasswordValid) {
@@ -35,7 +35,7 @@ export const loginService = async (payload: any, res: Response) => {
   }
   const userObject = user.toObject();
   delete userObject.password;
-
+ 
   // Generate JWT token
   const token = jwt.sign(
     {
@@ -46,7 +46,7 @@ export const loginService = async (payload: any, res: Response) => {
     process.env.AUTH_SECRET as string,
     { expiresIn: '1d' }
   );
-
+ 
   // Set token in cookie
   res.cookie('token', token, {
     httpOnly: true,
@@ -54,7 +54,7 @@ export const loginService = async (payload: any, res: Response) => {
     maxAge: 24 * 60 * 60 * 1000, // 1 day
     sameSite: 'strict'
   });
-
+ 
   return {
     success: true,
     message: "Login successful",
@@ -64,13 +64,13 @@ export const loginService = async (payload: any, res: Response) => {
     },
   };
 };
-
+ 
 export const forgotPasswordService = async (phoneNumber: string, res: Response) => {
   const admin = await adminModel.findOne({ phoneNumber: phoneNumber }).select("+password");
   // if (!admin) return errorResponseHandler("Phone number not found", httpStatusCode.NOT_FOUND, res);
   const passwordResetToken = await generatePasswordResetToken(phoneNumber);
   console.log('passwordResetToken: ', passwordResetToken);
-
+ 
   if (passwordResetToken !== null) {
     await generatePasswordResetTokenByPhoneWithTwilio(phoneNumber, passwordResetToken.token);
     return { success: true, message: "Password reset email sent with otp", status:200 };
@@ -87,24 +87,24 @@ export const verifyOtpPasswordResetService = async (
       httpStatusCode.BAD_REQUEST,
       res
     );
-
+ 
   const hasExpired = new Date(existingToken.expires) < new Date();
   if (hasExpired)
     return errorResponseHandler("OTP expired", httpStatusCode.BAD_REQUEST, res);
   return { success: true, message: "Token verified successfully", status:200 };
 };
-
+ 
 export const newPassswordAfterOTPVerifiedService = async (payload: { password: string; otp: string }, res: Response) => {
   const { password, otp } = payload;
-
+ 
   const existingToken = await getPasswordResetTokenByToken(otp);
   if (!existingToken) return errorResponseHandler("Invalid OTP", httpStatusCode.BAD_REQUEST, res);
-
+ 
   const hasExpired = new Date(existingToken.expires) < new Date();
   if (hasExpired) return errorResponseHandler("OTP expired", httpStatusCode.BAD_REQUEST, res);
-
+ 
   let existingAdmin: any;
-
+ 
   if (existingToken.email) {
     existingAdmin = await adminModel.findOne({ phoneNumber: existingToken.email });
   }
@@ -114,7 +114,7 @@ export const newPassswordAfterOTPVerifiedService = async (payload: { password: s
   const hashedPassword = await bcrypt.hash(password, 10);
   const response = await adminModel.findByIdAndUpdate(existingAdmin._id, { password: hashedPassword }, { new: true });
   await passwordResetTokenModel.findByIdAndDelete(existingToken._id);
-
+ 
   return {
     success: true,
     message: "Password updated successfully",
@@ -122,7 +122,7 @@ export const newPassswordAfterOTPVerifiedService = async (payload: { password: s
     status:200,
   };
 };
-
+ 
 export const getAdminDetailsService = async (payload: any, res: Response) => {
   const results = await adminModel.find();
   return {
@@ -130,7 +130,7 @@ export const getAdminDetailsService = async (payload: any, res: Response) => {
     data: results,
   };
 };
-
+ 
 export const getNewUsersService = async (payload: any) => {
   const page = parseInt(payload.page as string) || 1;
   const limit = parseInt(payload.limit as string) || 0;
@@ -144,6 +144,10 @@ export const getNewUsersService = async (payload: any) => {
       (query as any) = { ...query, createdAt: { $gte: date } };
     }
   }
+ 
+ 
+ 
+ 
   // const totalDataCount = Object.keys(query).length < 1 ? await usersModel.countDocuments() : await usersModel.countDocuments(query);
   // const results = await usersModel.find(query).sort(sort).skip(offset).limit(limit).select("-__v");
   // if (results.length)

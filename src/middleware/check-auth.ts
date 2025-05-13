@@ -12,17 +12,17 @@ declare global {
         }
     }
 }
-
+ 
 export const checkWebAuth = async (req: Request, res: Response, next: NextFunction) => {
     const token = req.headers.authorization?.split(" ")[1] || req.cookies.token
     if (!token) return res.status(httpStatusCode.UNAUTHORIZED).json({ success: false, message: "Unauthorized token missing" })
-
+ 
     try {
         const decoded = jwt.verify(token, process.env.AUTH_SECRET as string)
             if (!decoded) return res.status(httpStatusCode.UNAUTHORIZED).json({ success: false, message: "Unauthorized token invalid or expired" })
             req.user = decoded
         next()
-    } catch (error) { 
+    } catch (error) {
         return res.status(httpStatusCode.UNAUTHORIZED).json({ success: false, message: "Unauthorized" })
     }
 }
@@ -30,9 +30,9 @@ export const checkAuth = async (req: Request, res: Response, next: NextFunction)
     try {
         const token = req.headers.authorization?.split(" ")[1] || req.cookies.token
         if (!token) return res.status(httpStatusCode.UNAUTHORIZED).json({ success: false, message: "Unauthorized token missing" })
-
+ 
         const isMobileApp = req.headers['x-client-type'] === 'mobile'
-
+ 
         if (isMobileApp) {
             const decoded = jwt.verify(token, process.env.AUTH_SECRET as string)
             if (!decoded) return res.status(httpStatusCode.UNAUTHORIZED).json({ success: false, message: "Unauthorized token invalid or expired" })
@@ -47,7 +47,7 @@ export const checkAuth = async (req: Request, res: Response, next: NextFunction)
             if (!decoded) return res.status(httpStatusCode.UNAUTHORIZED).json({ success: false, message: "Unauthorized token invalid or expired" });
                 (req as any).currentUser = decoded.id
             }
-
+ 
         next()
     } catch (error) {
         return res.status(httpStatusCode.UNAUTHORIZED).json({ success: false, message: "Unauthorized" })

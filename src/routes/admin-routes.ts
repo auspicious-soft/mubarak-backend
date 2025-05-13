@@ -1,12 +1,13 @@
 import { Router } from "express";
-import {  getAdminDetails,  } from "../controllers/admin/admin-controller";
+import { getAdminDetails } from "../controllers/admin/admin-controller";
 import { createStore, deleteStore, getAllStores, getStoreById, updateStore } from "../controllers/stores/store-controller";
 import {
   createStoreProduct,
   getAllStoreProducts,
   getStoreProductById,
   updateStoreProduct,
-  deleteStoreProduct
+  deleteStoreProduct,
+  getStoreProductsByStoreIdForAdmin
 } from "../controllers/store-products/store-products-controller";
 import {
   createPromotion,
@@ -21,7 +22,7 @@ import { checkWebAuth } from "../middleware/check-auth";
 
 const router = Router();
 
-router.get("/",checkWebAuth, getAdminDetails);
+router.get("/", checkWebAuth, getAdminDetails);
 // router.get("/dashboard", getDashboardStats);
 
 //users routes
@@ -36,6 +37,9 @@ router.route("/user-products/:id")
 router.route("/stores").post(createStore).get(getAllStores);
 router.route("/stores/:id").get(getStoreById).put(updateStore).delete(deleteStore);
 
+// New route for admin to get products of a specific store
+router.get("/stores/:storeId/products", getStoreProductsByStoreIdForAdmin);
+
 //store-products routes
 router.route("/store-products").get(getAllStoreProducts);
 router.route("/store-products/:id").get(getStoreProductById).delete(deleteStoreProduct);
@@ -43,6 +47,5 @@ router.route("/store-products/:id").get(getStoreProductById).delete(deleteStoreP
 //promotions routes
 router.route("/promotions").post(createPromotion).get(getAllPromotions);
 router.route("/promotions/:id").get(getPromotionById).put(updatePromotion).delete(deletePromotion);
-
 
 export { router };
