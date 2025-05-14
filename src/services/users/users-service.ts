@@ -195,7 +195,7 @@ export const getAllUsersService = async (payload: any) => {
   const offset = (page - 1) * limit;
 
   // Get search query from queryBuilder
-  let { query, sort } = queryBuilder(payload, ["fullName", "email"]);
+  let { query, sort } = queryBuilder(payload, ["fullName", "email","firstName", "lastName"]);
   //TODO add lastest date of order
 
   const totalUsers = await usersModel.countDocuments(query);
