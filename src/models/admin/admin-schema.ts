@@ -29,6 +29,10 @@ const adminSchema = new mongoose.Schema({
     phoneNumber: {
       type: String,
     },
+    image:{
+      type:String,
+      default:"web/logo/Frame1984078080.png"
+    },
     planType: {
       type: String,
     },

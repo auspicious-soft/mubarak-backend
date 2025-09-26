@@ -25,6 +25,7 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
+          registry: docker.io
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
@@ -71,10 +72,8 @@ jobs:
             docker run -d -p 8000:8000 --name bookstagram-backend \
               -e MONGO_URL='${{ secrets.MONGO_URL }}' \
               -e PORT='${{ secrets.PORT }}' \
-              -e NEXT_PUBLIC_APP_URL='${{ secrets.NEXT_PUBLIC_APP_URL }}' \
               -e RESEND_API_KEY='${{ secrets.RESEND_API_KEY }}' \
               -e COMPANY_RESEND_GMAIL_ACCOUNT='${{ secrets.COMPANY_RESEND_GMAIL_ACCOUNT }}' \
-              -e ACCOUNTSID='${{ secrets.ACCOUNTSID }}' \
               -e AUTHTOKEN='${{ secrets.AUTHTOKEN }}' \
               -e FROMPHONENUMBER='${{ secrets.FROMPHONENUMBER }}' \
               -e AUTH_SECRET='${{ secrets.AUTH_SECRET }}' \

@@ -26,13 +26,12 @@ const userSchema = new mongoose.Schema({
     },
     email: {
       type: String,
-      required: false,
       unique: true,
       sparse: true,
       trim: true,
       lowercase: true,
+      // Remove default: null - this is the key fix!
     },
-   
     phoneNumber: {
       type: String,
       required: true,

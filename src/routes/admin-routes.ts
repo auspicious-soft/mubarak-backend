@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getAdminDetails } from "../controllers/admin/admin-controller";
+import { getAdminDetails, getAdminDetailsById } from "../controllers/admin/admin-controller";
 import { createStore, deleteStore, getAllStores, getStoreById, updateStore } from "../controllers/stores/store-controller";
 import {
   createStoreProduct,
@@ -23,6 +23,7 @@ import { checkWebAuth } from "../middleware/check-auth";
 const router = Router();
 
 router.get("/", checkWebAuth, getAdminDetails);
+router.get("/admin-detail",getAdminDetailsById)
 // router.get("/dashboard", getDashboardStats);
 
 //users routes

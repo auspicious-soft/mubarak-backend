@@ -11,7 +11,7 @@ const storeSchema = new mongoose.Schema({
     },
     role: {
       type: String,
-      requried: true,
+      default: "store",
     },
     ownerName: {
       type: String,
@@ -32,6 +32,10 @@ const storeSchema = new mongoose.Schema({
       type: String,
       required: true,
       select: false,
+    },
+    image:{
+      type:String,
+      default:"web/logo/Frame1984078080.png"
     },
     phoneNumber: {
       type: String,

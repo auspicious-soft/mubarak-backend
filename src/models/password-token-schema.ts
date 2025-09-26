@@ -1,10 +1,11 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 const passwordResetSchema = new mongoose.Schema({
     email: {
         type: String,
         required: false,
         unique: true,
+        sparse: true, // Allows multiple null/undefined values
         trim: true,
         lowercase: true,
     },
@@ -15,13 +16,15 @@ const passwordResetSchema = new mongoose.Schema({
     },
     expires: {
         type: Date,
-        required: true
+        required: true,
+        // TTL index to automatically delete expired documents
+        index: { expires: 0 } // MongoDB will delete the document when expires <= current time
     },
-    phoneNumber : {
+    phoneNumber: {
         type: String,
-        required: false
+        required: false,
     }
-
 });
 
+// Create the model
 export const passwordResetTokenModel = mongoose.model("passwordResetToken", passwordResetSchema);

@@ -33,29 +33,36 @@ export const createStoreProductService = async (payload: any, res: Response) => 
 };
 
 // Get All Store Products
-export const getAllStoreProductsService = async (payload: any) => {
+export const getAllStoreProductsService = async (storeId:any,payload: any) => {
   try {
-    const page = parseInt(payload.page as string) || 1;
-    const limit = parseInt(payload.limit as string) || 10;
+    const page = Number(payload.page) > 0 ? Number(payload.page) : 1;
+    const limit = Number(payload.limit) > 0 ? Number(payload.limit) : 10;
     const offset = (page - 1) * limit;
+    console.log('storeId:', storeId);
 
-    // Create a base query object
+    // Base query
     const baseQuery: any = {};
+    if (storeId) {
+      baseQuery.storeId = storeId;
+    }
 
- 
+    // Build search and sort
+    const { query: searchQuery, sort } = queryBuilder(payload, [
+      "name",
+      "shortDescription",
+    ]);
 
-    // Get search query from queryBuilder
-    let { query: searchQuery, sort } = queryBuilder(payload, ["name", "shortDescription"]);
-
-    // Merge the queries
-    const query = { ...baseQuery, ...(Object.keys(searchQuery).length > 0 ? searchQuery : {}) };
+    // Merge base + search
+    const query = { ...baseQuery, ...searchQuery };
 
     const totalProducts = await storeProductModel.countDocuments(query);
+
     const products = await storeProductModel
       .find(query)
       .sort(sort)
       .skip(offset)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     return {
       success: true,
@@ -64,22 +71,21 @@ export const getAllStoreProductsService = async (payload: any) => {
         products,
         page,
         limit,
-        total: totalProducts
-      }
+        total: totalProducts,
+      },
     };
   } catch (error) {
     console.error("Error fetching store products:", error);
     return {
       success: false,
       message: "Failed to retrieve store products",
-      data: null
+      data: null,
     };
   }
 };
 
 // Get Store Product by ID
 export const getStoreProductByIdService = async (id: string, res: Response) => {
-  try {
     const product = await storeProductModel.findById(id);
 
     if (!product) {
@@ -91,14 +97,7 @@ export const getStoreProductByIdService = async (id: string, res: Response) => {
       message: "Store product retrieved successfully",
       data: product
     };
-  } catch (error) {
-    console.error("Error fetching store product:", error);
-    return errorResponseHandler(
-      "Failed to retrieve store product",
-      httpStatusCode.INTERNAL_SERVER_ERROR,
-      res
-    );
-  }
+
 };
 
 // Update Store Product
@@ -150,29 +149,37 @@ export const updateStoreProductService = async (id: string, payload: any, res: R
 };
 
 // Delete Store Product
-export const deleteStoreProductService = async (id: string, res: Response) => {
-  try {
-    const product = await storeProductModel.findById(id);
-
+export const deleteStoreProductService = async (
+  id: string,
+  storeId: string,
+  res: Response
+) => {
+    const product = await storeProductModel.findById(id).lean();
     if (!product) {
-      return errorResponseHandler("Store product not found", httpStatusCode.NOT_FOUND, res);
+      return errorResponseHandler(
+        "Store product not found",
+        httpStatusCode.NOT_FOUND,
+        res
+      );
+    }
+
+    // Check store ownership
+    if (product.storeId.toString() !== storeId.toString()) {
+      return errorResponseHandler(
+        "You are not authorized to delete this product",
+        httpStatusCode.FORBIDDEN,
+        res
+      );
     }
 
     await storeProductModel.findByIdAndDelete(id);
 
     return {
       success: true,
-      message: "Store product deleted successfully"
+      message: "Store product deleted successfully",
     };
-  } catch (error) {
-    console.error("Error deleting store product:", error);
-    return errorResponseHandler(
-      "Failed to delete store product",
-      httpStatusCode.INTERNAL_SERVER_ERROR,
-      res
-    );
-  }
 };
+
 
 // Admin: Get Products by Store ID
 export const getStoreProductsByStoreIdForAdminService = async (storeId: string, payload: any) => {

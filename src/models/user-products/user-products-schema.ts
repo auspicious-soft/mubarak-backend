@@ -1,15 +1,9 @@
 import mongoose from 'mongoose';
 import { customAlphabet } from "nanoid";
 
-const identifier = customAlphabet("0123456789", 5);
 const Schema = mongoose.Schema;
 
 const userProductSchema = new Schema({
-  identifier: {
-    type: String,
-    unique: true,
-    default: () => identifier(),
-  },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'user',
@@ -46,8 +40,8 @@ const userProductSchema = new Schema({
     //   message: 'At least one image is required.'
     // }
   },
-
-  phoneNumber: {
+ contactInfo: {
+   phoneNumber: {
     type: String,
     required: true,
     trim: true
@@ -62,15 +56,14 @@ const userProductSchema = new Schema({
     required: true,
     lowercase: true,
     trim: true
-  },
-
+  }
+},
   exchanges: {
     type: String,
     trim: true
   },
   estimatedDelivery: {
     type: String,
-    required: false,
     trim: true
   },
 

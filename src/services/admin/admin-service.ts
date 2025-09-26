@@ -94,32 +94,70 @@ export const verifyOtpPasswordResetService = async (
   return { success: true, message: "Token verified successfully", status:200 };
 };
  
-export const newPassswordAfterOTPVerifiedService = async (payload: { password: string; otp: string }, res: Response) => {
+export const newPassswordAfterOTPVerifiedService = async (
+  payload: { password: string; otp: string },
+  res: Response
+) => {
   const { password, otp } = payload;
- 
+
+  // Fetch the token
   const existingToken = await getPasswordResetTokenByToken(otp);
-  if (!existingToken) return errorResponseHandler("Invalid OTP", httpStatusCode.BAD_REQUEST, res);
- 
+  if (!existingToken)
+    return errorResponseHandler("Invalid OTP", httpStatusCode.BAD_REQUEST, res);
+
+  // Check if token has expired
   const hasExpired = new Date(existingToken.expires) < new Date();
-  if (hasExpired) return errorResponseHandler("OTP expired", httpStatusCode.BAD_REQUEST, res);
- 
+  if (hasExpired)
+    return errorResponseHandler("OTP expired", httpStatusCode.BAD_REQUEST, res);
+
   let existingAdmin: any;
- 
+  let existingStore: any;
+
+  // Try finding admin by email if present
   if (existingToken.email) {
-    existingAdmin = await adminModel.findOne({ phoneNumber: existingToken.email });
+    existingAdmin = await adminModel.findOne({ email: existingToken.email });
   }
-  if (!existingAdmin) {  
-    return errorResponseHandler("Admin account not found", httpStatusCode.NOT_FOUND, res);
+
+  // If admin not found, try finding store
+  if (!existingAdmin && existingToken.email) {
+    existingStore = await storeModel.findOne({ phoneNumber: existingToken.email });
   }
+
+  // If neither exists, return error
+  if (!existingAdmin && !existingStore) {
+    return errorResponseHandler(
+      "Account not found",
+      httpStatusCode.NOT_FOUND,
+      res
+    );
+  }
+
+  // Hash the new password
   const hashedPassword = await bcrypt.hash(password, 10);
-  const response = await adminModel.findByIdAndUpdate(existingAdmin._id, { password: hashedPassword }, { new: true });
+
+  let updatedAccount;
+  if (existingAdmin) {
+    updatedAccount = await adminModel.findByIdAndUpdate(
+      existingAdmin._id,
+      { password: hashedPassword },
+      { new: true }
+    );
+  } else if (existingStore) {
+    updatedAccount = await storeModel.findByIdAndUpdate(
+      existingStore._id,
+      { password: hashedPassword },
+      { new: true }
+    );
+  }
+
+  // Delete the used token
   await passwordResetTokenModel.findByIdAndDelete(existingToken._id);
- 
+
   return {
     success: true,
     message: "Password updated successfully",
-    data: response,
-    status:200,
+    data: updatedAccount,
+    status: 200,
   };
 };
  
@@ -128,6 +166,16 @@ export const getAdminDetailsService = async (payload: any, res: Response) => {
   return {
     success: true,
     data: results,
+  };
+};
+export const getAdminDetailsServiceById = async (id: string, res: Response) => {
+  const result = await adminModel.findById(id);
+  if (!result) {
+    return errorResponseHandler("Admin not found", httpStatusCode.NOT_FOUND, res);
+  }
+  return {
+    success: true,
+    data: result,
   };
 };
  

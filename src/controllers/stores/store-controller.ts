@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 
-import { errorParser } from "../../lib/errors/error-response-handler";
+import { errorParser, errorResponseHandler } from "../../lib/errors/error-response-handler";
 import { httpStatusCode } from "../../lib/constant";
 import { 
   createStoreService,
@@ -61,11 +61,33 @@ export const getStoreProfile = async (req: Request, res: Response) => {
       .json({ success: false, message: message || "An error occurred" });
   }
 };
+export const getStoreProfileByToken = async (req: Request, res: Response) => {
+  try {
+    const response = await getStoreProfileService(req.user.id, res);
+    return res.status(httpStatusCode.OK).json(response);
+  } catch (error: any) {
+    const { code, message } = errorParser(error);
+    return res
+      .status(code || httpStatusCode.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: message || "An error occurred" });
+  }
+};
 
 // Update Store
 export const updateStore = async (req: Request, res: Response) => {
   try {
     const response = await updateStoreService(req.params.id, req.body, res);
+    return res.status(httpStatusCode.OK).json(response);
+  } catch (error: any) {
+    const { code, message } = errorParser(error);
+    return res
+      .status(code || httpStatusCode.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: message || "An error occurred" });
+  }
+};
+export const updateStoreByToken = async (req: Request, res: Response) => {
+  try {
+    const response = await updateStoreService(req.user.id, req.body, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);

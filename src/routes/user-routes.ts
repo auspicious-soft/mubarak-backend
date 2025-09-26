@@ -11,6 +11,7 @@ import {
 
 } from "../controllers/users/users-controller";
 import { createUserProduct, deleteUserProduct, getAllUserProducts, getUserProductById, getUserProductsByUserId, updateUserProduct } from "../controllers/user-products/user-products-controller";
+import { authMiddleware } from "../middleware/check-auth";
 
 const router = Router();
 
@@ -23,18 +24,18 @@ router.post("/resend-otp", resendOTP);
 
 // CRUD routes
 router.route("/").get(getAllUsers);
-router.route("/:id").get(getUserById).put(updateUser).delete(deleteUser);
+router.route("/:id").get(authMiddleware,getUserById).put(authMiddleware,updateUser).delete(authMiddleware,deleteUser);
 
 //User-product routes
-router.post("/user-products", createUserProduct);
-router.get("/my-products/:userId", getUserProductsByUserId);
+router.post("/user-products", authMiddleware, createUserProduct);
+router.get("/my-products/:userId", authMiddleware, getUserProductsByUserId);
 router.route("/user-products/:id")
-  .get(getUserProductById)
-  .put(updateUserProduct)
-  .delete(deleteUserProduct);
+  .get(authMiddleware, getUserProductById)
+  .put(authMiddleware, updateUserProduct)
+  .delete(authMiddleware, deleteUserProduct);
 
 //Open-market routes
-router.get("/open-market/products", getAllUserProducts);
+router.get("/open-market/products", authMiddleware, getAllUserProducts);
 
 
 export { router };

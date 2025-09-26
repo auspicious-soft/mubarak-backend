@@ -12,69 +12,82 @@ import { generatePasswordResetTokenByPhoneWithTwilio } from "../../utils/sms/sms
 
 // Create User (Sign Up)
 export const createUserService = async (payload: any, res: Response) => {
-  const { email, phoneNumber } = payload;
+  let { email, phoneNumber } = payload;
+
+  email = typeof email === 'string' && email.trim() !== '' ? email.trim().toLowerCase() : undefined;
 
   if (!phoneNumber) {
-    return errorResponseHandler(
-      "Phone number is required",
-      httpStatusCode.BAD_REQUEST,
-      res
-    );
+    return errorResponseHandler('Phone number is required', httpStatusCode.BAD_REQUEST, res);
   }
 
-  // Check if user already exists
-  const existingUser = await usersModel.findOne({
-    $or: [
-      { email: email || null },
-      { phoneNumber }
-    ]
-  });
+  const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+  if (!phoneRegex.test(phoneNumber)) {
+    return errorResponseHandler('Invalid phone number format', httpStatusCode.BAD_REQUEST, res);
+  }
 
-  if (existingUser) {
-    // If user exists but not verified, send OTP again
-    if (!existingUser.isVerified) {
+  if (email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return errorResponseHandler('Invalid email format', httpStatusCode.BAD_REQUEST, res);
+    }
+  }
+
+  const [existingUserByEmail, existingUserByPhone] = await Promise.all([
+    email ? usersModel.findOne({ email }).lean() : null,
+    usersModel.findOne({ phoneNumber }).lean(),
+  ]);
+
+  if (existingUserByEmail || existingUserByPhone) {
+    if (existingUserByPhone && !existingUserByPhone.isVerified) {
       const otp = await generatePasswordResetTokenByPhone(phoneNumber);
       await generatePasswordResetTokenByPhoneWithTwilio(phoneNumber, otp.token);
 
-      const userObject = existingUser.toObject();
-      // @ts-ignore
-
       return {
         success: true,
-        message: "OTP sent to your phone number for verification.",
-        data: userObject
+        message: 'OTP sent to your phone number for verification.',
+        data: existingUserByPhone,
       };
     }
 
-    return errorResponseHandler(
-      "User with this phone number already exists",
-      httpStatusCode.BAD_REQUEST,
-      res
-    );
+    let message = 'User with ';
+    if (existingUserByEmail && existingUserByPhone) {
+      message += 'this email and phone number already exists.';
+    } else if (existingUserByEmail) {
+      message += 'this email already exists.';
+    } else {
+      message += 'this phone number already exists.';
+    }
+
+    return errorResponseHandler(message, httpStatusCode.BAD_REQUEST, res);
   }
 
-  // Create user without password initially
-  const user = await usersModel.create({
-    ...payload,
-    isVerified: false
-  });
+  // Create userData object without email if it's not provided
+  const userData: any = { 
+    ...payload, 
+    isVerified: false 
+  };
+  
+  // Only include email if it exists and is valid
+  if (email) {
+    userData.email = email;
+  } else {
+    // Completely remove email field instead of setting to null/undefined
+    delete userData.email;
+  }
 
-  // Generate OTP for verification
+  console.log('Creating user:', userData); // Debug log
+
+  const user = await usersModel.create(userData);
+
   const otp = await generatePasswordResetTokenByPhone(phoneNumber);
-
-  // Send OTP via SMS
   await generatePasswordResetTokenByPhoneWithTwilio(phoneNumber, otp.token);
-
-  const userObject = user.toObject();
-  // @ts-ignore
 
   return {
     success: true,
-    message: "OTP sent to your phone number for verification.",
-    data: userObject
+    message: 'OTP sent to your phone number for verification.',
+    data: user.toObject(),
   };
 };
-
 // User Login
 export const loginUserService = async (payload: any, res: Response) => {
   const { phoneNumber } = payload;

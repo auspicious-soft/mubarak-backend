@@ -29,18 +29,18 @@ const additionalSectionSchema = new Schema({
 });
 
 // Schema for Long Description (remains the same)
-const descriptionSchema = new Schema({
-  heading: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  description: {
-    type: String,
-    required: true,
-    trim: true
-  }
-});
+// const descriptionSchema = new Schema({
+//   heading: {
+//     type: String,
+//     required: true,
+//     trim: true
+//   },
+//   description: {
+//     type: String,
+//     required: true,
+//     trim: true
+//   }
+// });
 
 // Schema for Price Details
 const priceDetailsSchema = new Schema({
@@ -112,8 +112,9 @@ const storeProductSchema = new Schema({
   //   required: true
   // },
   longDescriptions: {
-    type: [descriptionSchema],
-    default: []
+    type: String,
+    required: false,
+    trim: true
   },
   additionalSections: {
     type: [additionalSectionSchema],

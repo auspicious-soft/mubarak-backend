@@ -81,7 +81,7 @@ export const getStoreByIdService = async (id: string, res: Response) => {
 };
 export const getStoreProfileService = async (id: string, res: Response) => {
   //TODO- get store id by the token
-  const store = await storeModel.findById(id);
+  const store = await storeModel.findById(id)
   if (!store) {
     return errorResponseHandler("Store not found", httpStatusCode.NOT_FOUND, res);
   }
@@ -106,9 +106,7 @@ export const updateStoreService = async (id: string, payload: any, res: Response
     payload.password = await bcrypt.hash(payload.password, 10);
   }
 
-  const updatedStore = await storeModel
-    .findByIdAndUpdate(id, payload, { new: true })
-    .select("-password");
+  const updatedStore = await storeModel.findByIdAndUpdate(id, payload, { new: true });
 
   return {
     success: true,

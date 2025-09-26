@@ -16,6 +16,11 @@ export const checkValidStoreRole = (req: Request, res: Response, next: any) => {
   if (role !== "store") return res.status(403).json({ success: false, message: "Invalid role" });
   else return next();
 };
+export const checkValidUserRole = (req: Request, res: Response, next: any) => {
+  const { role } = req.headers;
+  if (role !== "user") return res.status(403).json({ success: false, message: "Invalid role" });
+  else return next();
+};
 
 interface Payload {
   description?: string;

@@ -26,7 +26,7 @@ export const createStoreProduct = async (req: Request, res: Response) => {
 // Get All Store Products
 export const getAllStoreProducts = async (req: Request, res: Response) => {
   try {
-    const response = await getAllStoreProductsService(req.query);
+    const response = await getAllStoreProductsService(req.user.id,req.query);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);
@@ -65,7 +65,7 @@ export const updateStoreProduct = async (req: Request, res: Response) => {
 // Delete Store Product
 export const deleteStoreProduct = async (req: Request, res: Response) => {
   try {
-    const response = await deleteStoreProductService(req.params.id, res);
+    const response = await deleteStoreProductService(req.params.id,req.user.id, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);
