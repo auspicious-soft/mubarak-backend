@@ -34,13 +34,12 @@ app.use(express.urlencoded({ extended: true }));
 // });
 
 app.use(
-    cors({
-        origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL || 'https://yourdomain.com' : 'http://localhost:3000',
-        methods: ['GET', 'POST', 'PATCH', 'DELETE', 'PUT'],
-        credentials: true,
-    })
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PATCH", "DELETE", "PUT"],
+  })
 );
-
+ 
 var dir = path.join(__dirname, 'static')
 app.use(express.static(dir))
 
