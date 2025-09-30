@@ -37,7 +37,15 @@ export const createUserProduct = async (req: Request, res: Response) => {
 // Get all user products
 export const getAllUserProducts = async (req: Request, res: Response) => {
   try {
-    const response = await getAllUserProductsService(req.query);
+    const userId = (req as any).user?.id || req.body.userId;
+
+    if (!userId) {
+      return res.status(httpStatusCode.UNAUTHORIZED).json({
+        success: false,
+        message: "User not authenticated"
+      });
+    }
+    const response = await getAllUserProductsService(req.query,userId);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);
@@ -49,10 +57,10 @@ export const getAllUserProducts = async (req: Request, res: Response) => {
 
 // Get user products by user ID
 export const getUserProductsByUserId = async (req: Request, res: Response) => {
+  console.log('req:', req);
   try {
     //TODO - userID by token
-    const userId = req.params.userId || (req as any).user?.id;
-
+   const userId = (req as any).user?.id;
     if (!userId) {
       return res.status(httpStatusCode.BAD_REQUEST).json({
         success: false,

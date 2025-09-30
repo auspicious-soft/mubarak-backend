@@ -20,12 +20,18 @@ export const createUserProductService = async (payload: any, userId: string, res
   };
 };
 
-export const getAllUserProductsService = async (query: any) => {
+export const getAllUserProductsService = async (query: any, userId: string) => {
   const page = parseInt(query.page as string) || 1;
   const limit = parseInt(query.limit as string) || 10;
   const offset = (page - 1) * limit;
 
-  let { query: searchQuery, sort } = queryBuilder(query, ["productName"]) as { query: { [key: string]: any; price?: { $gte?: number; $lte?: number } }, sort: any };
+  let { query: searchQuery, sort } = queryBuilder(query, ["productName"]) as { 
+    query: { [key: string]: any; price?: { $gte?: number; $lte?: number } }, 
+    sort: any 
+  };
+
+  // ✅ Exclude current user's products
+  searchQuery.userId = { $ne: userId };
 
   // Handle price filtering (min/max)
   if (query.minPrice || query.maxPrice) {
@@ -52,7 +58,8 @@ export const getAllUserProductsService = async (query: any) => {
     .find(searchQuery)
     .sort(sort)
     .skip(offset)
-    .limit(limit);
+    .limit(limit)
+    .populate("userId")
 
   return {
     success: true,
@@ -130,7 +137,7 @@ export const getUserProductsByUserIdService = async ( userId: string, payload: a
 
 // Get product by ID
 export const getUserProductByIdService = async (productId: string, res: Response) => {
-  const product = await userProductModel.findById(productId);
+  const product = await userProductModel.findById(productId).populate("userId");
 
   if (!product) {
     return errorResponseHandler("Product not found", httpStatusCode.NOT_FOUND, res);

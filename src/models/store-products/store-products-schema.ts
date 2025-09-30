@@ -101,7 +101,7 @@ const storeProductSchema = new Schema({
     type: [priceDetailsSchema],
     default: [],
     validate: {
-      validator: function (arr) {
+      validator: function (arr : any) {
         return arr.length > 0;
       },
       message: 'At least one price detail is required.'

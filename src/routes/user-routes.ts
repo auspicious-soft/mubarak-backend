@@ -8,6 +8,9 @@ import {
   getUserById,
   updateUser,
   deleteUser,
+  getUserHome,
+  getUserHomeStores,
+  getStoreAndProductsByid,
 
 } from "../controllers/users/users-controller";
 import { createUserProduct, deleteUserProduct, getAllUserProducts, getUserProductById, getUserProductsByUserId, updateUserProduct } from "../controllers/user-products/user-products-controller";
@@ -28,14 +31,19 @@ router.route("/:id").get(authMiddleware,getUserById).put(authMiddleware,updateUs
 
 //User-product routes
 router.post("/user-products", authMiddleware, createUserProduct);
-router.get("/my-products/:userId", authMiddleware, getUserProductsByUserId);
+router.get("/my/products", authMiddleware, getUserProductsByUserId);
 router.route("/user-products/:id")
   .get(authMiddleware, getUserProductById)
   .put(authMiddleware, updateUserProduct)
   .delete(authMiddleware, deleteUserProduct);
 
+router.get("/home/data",authMiddleware,getUserHome)
+router.get("/home/stores",authMiddleware,getUserHomeStores)
+router.get("/home/stores/:id",authMiddleware,getStoreAndProductsByid)
+
 //Open-market routes
 router.get("/open-market/products", authMiddleware, getAllUserProducts);
+router.get("/open-market/products/:id", authMiddleware, getUserProductById);
 
 
 export { router };

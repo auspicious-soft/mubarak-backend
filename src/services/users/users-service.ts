@@ -4,31 +4,55 @@ import { errorResponseHandler } from "../../lib/errors/error-response-handler";
 import { httpStatusCode } from "../../lib/constant";
 import { queryBuilder } from "../../utils";
 import { usersModel } from "../../models/users/users-schema";
-import { generatePasswordResetToken, getPasswordResetTokenByToken, generatePasswordResetTokenByPhone } from "../../utils/mails/token";
+import {
+  generatePasswordResetToken,
+  getPasswordResetTokenByToken,
+  generatePasswordResetTokenByPhone,
+} from "../../utils/mails/token";
 import { sendPasswordResetEmail } from "../../utils/mails/mail";
 import { generateUserToken } from "../../utils/userAuth/signUpAuth";
 import { passwordResetTokenModel } from "../../models/password-token-schema";
 import { generatePasswordResetTokenByPhoneWithTwilio } from "../../utils/sms/sms";
-
+import { storeProductModel } from "../../models/store-products/store-products-schema";
+import { storeModel } from "../../models/stores/stores-schema";
+interface PaginationParams {
+  page?: number;
+  limit?: number;
+}
 // Create User (Sign Up)
 export const createUserService = async (payload: any, res: Response) => {
   let { email, phoneNumber } = payload;
 
-  email = typeof email === 'string' && email.trim() !== '' ? email.trim().toLowerCase() : undefined;
+  email =
+    typeof email === "string" && email.trim() !== ""
+      ? email.trim().toLowerCase()
+      : undefined;
 
   if (!phoneNumber) {
-    return errorResponseHandler('Phone number is required', httpStatusCode.BAD_REQUEST, res);
+    return errorResponseHandler(
+      "Phone number is required",
+      httpStatusCode.BAD_REQUEST,
+      res
+    );
   }
 
   const phoneRegex = /^\+?[1-9]\d{1,14}$/;
   if (!phoneRegex.test(phoneNumber)) {
-    return errorResponseHandler('Invalid phone number format', httpStatusCode.BAD_REQUEST, res);
+    return errorResponseHandler(
+      "Invalid phone number format",
+      httpStatusCode.BAD_REQUEST,
+      res
+    );
   }
 
   if (email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return errorResponseHandler('Invalid email format', httpStatusCode.BAD_REQUEST, res);
+      return errorResponseHandler(
+        "Invalid email format",
+        httpStatusCode.BAD_REQUEST,
+        res
+      );
     }
   }
 
@@ -44,29 +68,29 @@ export const createUserService = async (payload: any, res: Response) => {
 
       return {
         success: true,
-        message: 'OTP sent to your phone number for verification.',
+        message: "OTP sent to your phone number for verification.",
         data: existingUserByPhone,
       };
     }
 
-    let message = 'User with ';
+    let message = "User with ";
     if (existingUserByEmail && existingUserByPhone) {
-      message += 'this email and phone number already exists.';
+      message += "this email and phone number already exists.";
     } else if (existingUserByEmail) {
-      message += 'this email already exists.';
+      message += "this email already exists.";
     } else {
-      message += 'this phone number already exists.';
+      message += "this phone number already exists.";
     }
 
     return errorResponseHandler(message, httpStatusCode.BAD_REQUEST, res);
   }
 
   // Create userData object without email if it's not provided
-  const userData: any = { 
-    ...payload, 
-    isVerified: false 
+  const userData: any = {
+    ...payload,
+    isVerified: false,
   };
-  
+
   // Only include email if it exists and is valid
   if (email) {
     userData.email = email;
@@ -75,7 +99,7 @@ export const createUserService = async (payload: any, res: Response) => {
     delete userData.email;
   }
 
-  console.log('Creating user:', userData); // Debug log
+  console.log("Creating user:", userData); // Debug log
 
   const user = await usersModel.create(userData);
 
@@ -84,7 +108,7 @@ export const createUserService = async (payload: any, res: Response) => {
 
   return {
     success: true,
-    message: 'OTP sent to your phone number for verification.',
+    message: "OTP sent to your phone number for verification.",
     data: user.toObject(),
   };
 };
@@ -93,7 +117,11 @@ export const loginUserService = async (payload: any, res: Response) => {
   const { phoneNumber } = payload;
 
   if (!phoneNumber) {
-    return errorResponseHandler("Phone number is required", httpStatusCode.BAD_REQUEST, res);
+    return errorResponseHandler(
+      "Phone number is required",
+      httpStatusCode.BAD_REQUEST,
+      res
+    );
   }
 
   // Find user by phone number
@@ -102,7 +130,11 @@ export const loginUserService = async (payload: any, res: Response) => {
   if (!user) {
     // If user doesn't exist, create a new unverified user
     // return createUserService(payload, res);
-    return errorResponseHandler("User not found", httpStatusCode.NOT_FOUND, res);
+    return errorResponseHandler(
+      "User not found",
+      httpStatusCode.NOT_FOUND,
+      res
+    );
   }
 
   // Generate OTP for verification
@@ -117,7 +149,7 @@ export const loginUserService = async (payload: any, res: Response) => {
   return {
     success: true,
     message: "OTP sent to your phone number for verification",
-    data: userObject
+    data: userObject,
   };
 };
 
@@ -126,7 +158,11 @@ export const verifyOtpService = async (payload: any, res: Response) => {
   const { phoneNumber, otp } = payload;
 
   if (!phoneNumber) {
-    return errorResponseHandler("Phone number is required", httpStatusCode.BAD_REQUEST, res);
+    return errorResponseHandler(
+      "Phone number is required",
+      httpStatusCode.BAD_REQUEST,
+      res
+    );
   }
 
   // Find token
@@ -144,7 +180,11 @@ export const verifyOtpService = async (payload: any, res: Response) => {
 
   // Check if token belongs to the user
   if (existingToken.phoneNumber !== phoneNumber) {
-    return errorResponseHandler("Invalid OTP for this phone number", httpStatusCode.BAD_REQUEST, res);
+    return errorResponseHandler(
+      "Invalid OTP for this phone number",
+      httpStatusCode.BAD_REQUEST,
+      res
+    );
   }
 
   // Update user verification status
@@ -155,7 +195,11 @@ export const verifyOtpService = async (payload: any, res: Response) => {
   );
 
   if (!user) {
-    return errorResponseHandler("User not found", httpStatusCode.NOT_FOUND, res);
+    return errorResponseHandler(
+      "User not found",
+      httpStatusCode.NOT_FOUND,
+      res
+    );
   }
 
   // Delete the used token
@@ -169,8 +213,8 @@ export const verifyOtpService = async (payload: any, res: Response) => {
     message: "Phone number verified successfully",
     data: {
       user,
-      token
-    }
+      token,
+    },
   };
 };
 
@@ -179,14 +223,22 @@ export const resendOtpService = async (payload: any, res: Response) => {
   const { phoneNumber } = payload;
 
   if (!phoneNumber) {
-    return errorResponseHandler("Phone number is required", httpStatusCode.BAD_REQUEST, res);
+    return errorResponseHandler(
+      "Phone number is required",
+      httpStatusCode.BAD_REQUEST,
+      res
+    );
   }
 
   // Check if user exists
   const user = await usersModel.findOne({ phoneNumber });
 
   if (!user) {
-    return errorResponseHandler("User not found", httpStatusCode.NOT_FOUND, res);
+    return errorResponseHandler(
+      "User not found",
+      httpStatusCode.NOT_FOUND,
+      res
+    );
   }
 
   // Generate new OTP
@@ -208,7 +260,12 @@ export const getAllUsersService = async (payload: any) => {
   const offset = (page - 1) * limit;
 
   // Get search query from queryBuilder
-  let { query, sort } = queryBuilder(payload, ["fullName", "email","firstName", "lastName"]);
+  let { query, sort } = queryBuilder(payload, [
+    "fullName",
+    "email",
+    "firstName",
+    "lastName",
+  ]);
   //TODO add lastest date of order
 
   const totalUsers = await usersModel.countDocuments(query);
@@ -226,8 +283,8 @@ export const getAllUsersService = async (payload: any) => {
       users,
       page,
       limit,
-      total: totalUsers
-    }
+      total: totalUsers,
+    },
   };
 };
 
@@ -237,22 +294,34 @@ export const getUserByIdService = async (id: string, res: Response) => {
   //TODO add orders
   //TODO: return Total Revenue Generated, Most Sold Product,Total Products Listed,Products Sold and list of products
   if (!user) {
-    return errorResponseHandler("User not found", httpStatusCode.NOT_FOUND, res);
+    return errorResponseHandler(
+      "User not found",
+      httpStatusCode.NOT_FOUND,
+      res
+    );
   }
 
   return {
     success: true,
     message: "User retrieved successfully",
-    data: user
+    data: user,
   };
 };
 
 // Update User
-export const updateUserService = async (id: string, payload: any, res: Response) => {
+export const updateUserService = async (
+  id: string,
+  payload: any,
+  res: Response
+) => {
   const user = await usersModel.findById(id);
 
   if (!user) {
-    return errorResponseHandler("User not found", httpStatusCode.NOT_FOUND, res);
+    return errorResponseHandler(
+      "User not found",
+      httpStatusCode.NOT_FOUND,
+      res
+    );
   }
 
   // If updating password, hash it
@@ -272,7 +341,7 @@ export const updateUserService = async (id: string, payload: any, res: Response)
   return {
     success: true,
     message: "User updated successfully",
-    data: updatedUser
+    data: updatedUser,
   };
 };
 
@@ -281,14 +350,152 @@ export const deleteUserService = async (id: string, res: Response) => {
   const user = await usersModel.findById(id);
 
   if (!user) {
-    return errorResponseHandler("User not found", httpStatusCode.NOT_FOUND, res);
+    return errorResponseHandler(
+      "User not found",
+      httpStatusCode.NOT_FOUND,
+      res
+    );
   }
 
   await usersModel.findByIdAndDelete(id);
 
   return {
     success: true,
-    message: "User deleted successfully"
+    message: "User deleted successfully",
   };
 };
+export const getUserHomeService = async (
+  userId: string,
+  res: Response,
+  pagination: PaginationParams = {}
+) => {
+  const { page = 1, limit = 10 } = pagination; // default pagination
 
+  // Validate userId
+  if (!userId) {
+    return errorResponseHandler(
+      "User ID is required",
+      httpStatusCode.BAD_REQUEST,
+      res
+    );
+  }
+
+  // Fetch products by storeId (assuming userId is storeId)
+  const products = await storeProductModel
+    .find()
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .sort({ createdAt: -1 })
+    .populate("storeId", "-password -phoneNumber -email -role");
+
+  const totalProducts = await storeProductModel.countDocuments({});
+
+  const totalPages = Math.ceil(totalProducts / limit);
+
+  return {
+    success: true,
+    message: "Products fetched successfully",
+    data: {
+      products,
+      pagination: {
+        totalProducts,
+        totalPages,
+        currentPage: page,
+        pageSize: limit,
+      },
+    },
+  };
+};
+export const getUserHomeStoresService = async (
+  userId: string,
+  res: Response,
+  pagination: PaginationParams = {}
+) => {
+  const { page = 1, limit = 10 } = pagination; // default pagination
+
+  // Validate userId
+  if (!userId) {
+    return errorResponseHandler(
+      "User ID is required",
+      httpStatusCode.BAD_REQUEST,
+      res
+    );
+  }
+
+  // Fetch products by storeId (assuming userId is storeId)
+  const products = await storeModel
+    .find()
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .sort({ createdAt: -1 });
+
+  const totalProducts = await storeModel.countDocuments({});
+
+  const totalPages = Math.ceil(totalProducts / limit);
+
+  return {
+    success: true,
+    message: "Products fetched successfully",
+    data: {
+      products,
+      pagination: {
+        totalProducts,
+        totalPages,
+        currentPage: page,
+        pageSize: limit,
+      },
+    },
+  };
+};
+export const getStoreAndProductsByidService = async (
+  userId: string,
+  pagination: PaginationParams = {},
+  storeId: string,
+  res: Response
+) => {
+  const { page = 1, limit = 10 } = pagination;
+
+  // Validate userId
+  if (!userId) {
+    return errorResponseHandler(
+      "User ID is required",
+      httpStatusCode.BAD_REQUEST,
+      res
+    );
+  }
+
+  // ✅ Fetch store by ID
+  const store = await storeModel.findById(storeId);
+  if (!store) {
+    return errorResponseHandler(
+      "Store not found",
+      httpStatusCode.NOT_FOUND,
+      res
+    );
+  }
+
+  // ✅ Fetch store-related products with pagination
+  const products = await storeProductModel
+    .find({ storeId })
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .sort({ createdAt: -1 });
+
+  const totalProducts = await storeProductModel.countDocuments({ storeId });
+  const totalPages = Math.ceil(totalProducts / limit);
+
+  return {
+    success: true,
+    message: "Store and products fetched successfully",
+    data: {
+      store,
+      products,
+      pagination: {
+        totalProducts,
+        totalPages,
+        currentPage: page,
+        pageSize: limit,
+      },
+    },
+  };
+};

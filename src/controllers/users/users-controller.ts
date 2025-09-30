@@ -10,6 +10,9 @@ import {
   getUserByIdService,
   updateUserService,
   deleteUserService,
+  getUserHomeService,
+  getUserHomeStoresService,
+  getStoreAndProductsByidService,
  
 } from "../../services/users/users-service";
 
@@ -116,4 +119,57 @@ export const deleteUser = async (req: Request, res: Response) => {
       .json({ success: false, message: message || "An error occurred" });
   }
 };
-
+export const getUserHome = async (req: Request, res: Response) => {
+  try {
+     const userId = (req as any).user?.id;
+        if (!userId) {
+          return res.status(httpStatusCode.BAD_REQUEST).json({
+            success: false,
+            message: "User ID is required"
+          });
+        }
+    const response = await getUserHomeService(userId, res,req.query);
+    return res.status(httpStatusCode.OK).json(response);
+  } catch (error: any) {
+    const { code, message } = errorParser(error);
+    return res
+      .status(code || httpStatusCode.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: message || "An error occurred" });
+  }
+};
+export const getUserHomeStores = async (req: Request, res: Response) => {
+  try {
+     const userId = (req as any).user?.id;
+        if (!userId) {
+          return res.status(httpStatusCode.BAD_REQUEST).json({
+            success: false,
+            message: "User ID is required"
+          });
+        }
+    const response = await getUserHomeStoresService(userId, res,req.query);
+    return res.status(httpStatusCode.OK).json(response);
+  } catch (error: any) {
+    const { code, message } = errorParser(error);
+    return res
+      .status(code || httpStatusCode.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: message || "An error occurred" });
+  }
+};
+export const getStoreAndProductsByid = async (req: Request, res: Response) => {
+  try {
+     const userId = (req as any).user?.id;
+        if (!userId) {
+          return res.status(httpStatusCode.BAD_REQUEST).json({
+            success: false,
+            message: "User ID is required"
+          });
+        }
+    const response = await getStoreAndProductsByidService(userId,req.query,req.params.id, res);
+    return res.status(httpStatusCode.OK).json(response);
+  } catch (error: any) {
+    const { code, message } = errorParser(error);
+    return res
+      .status(code || httpStatusCode.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: message || "An error occurred" });
+  }
+};
