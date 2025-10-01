@@ -97,7 +97,14 @@ export const getUserById = async (req: Request, res: Response) => {
 // Update User
 export const updateUser = async (req: Request, res: Response) => {
   try {
-    const response = await updateUserService(req.params.id, req.body, res);
+     const userId = (req as any).user?.id;
+        if (!userId) {
+          return res.status(httpStatusCode.BAD_REQUEST).json({
+            success: false,
+            message: "User ID is required"
+          });
+        }
+    const response = await updateUserService(userId, req.body, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);

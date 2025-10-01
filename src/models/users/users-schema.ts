@@ -46,6 +46,10 @@ const userSchema = new mongoose.Schema({
     address: {
       type: String
     },
+    addressAdded:{
+      type:Boolean,
+      default:false
+    },
     street: { type: String },
     city: { type: String },
     country: { type: String },

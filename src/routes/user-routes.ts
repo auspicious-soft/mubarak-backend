@@ -15,6 +15,8 @@ import {
 } from "../controllers/users/users-controller";
 import { createUserProduct, deleteUserProduct, getAllUserProducts, getUserProductById, getUserProductsByUserId, updateUserProduct } from "../controllers/user-products/user-products-controller";
 import { authMiddleware } from "../middleware/check-auth";
+import { createAddress, deleteAddress, getUserAddresses, updateAddress } from "../controllers/address/address-controller";
+import {  getUserWishlistController, removeFromWishlistController, toggleWishlist } from "../controllers/wishlist/wishlist-controller";
 
 const router = Router();
 
@@ -40,6 +42,21 @@ router.route("/user-products/:id")
 router.get("/home/data",authMiddleware,getUserHome)
 router.get("/home/stores",authMiddleware,getUserHomeStores)
 router.get("/home/stores/:id",authMiddleware,getStoreAndProductsByid)
+
+// ADDRESS
+router.route("/address/user")
+  .post(authMiddleware, createAddress)      
+  .get(authMiddleware, getUserAddresses);  
+
+// Routes for /address/:id
+router.route("/address/:id")
+  .patch(authMiddleware, updateAddress)  
+  .delete(authMiddleware, deleteAddress);
+
+// Route for WIshlist
+router.post("/wishlist/add", authMiddleware, toggleWishlist);
+router.get("/wishlist/get", authMiddleware, getUserWishlistController);
+router.delete("/wishlist/remove", authMiddleware, removeFromWishlistController);
 
 //Open-market routes
 router.get("/open-market/products", authMiddleware, getAllUserProducts);
