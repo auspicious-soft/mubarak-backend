@@ -15,6 +15,8 @@ import { passwordResetTokenModel } from "../../models/password-token-schema";
 import { generatePasswordResetTokenByPhoneWithTwilio } from "../../utils/sms/sms";
 import { storeProductModel } from "../../models/store-products/store-products-schema";
 import { storeModel } from "../../models/stores/stores-schema";
+import { wishlistModel } from "../../models/wishlist/wishlist-schema";
+import { Types } from "mongoose";
 interface PaginationParams {
   page?: number;
   limit?: number;
@@ -369,7 +371,7 @@ export const getUserHomeService = async (
   res: Response,
   pagination: PaginationParams = {}
 ) => {
-  const { page = 1, limit = 10 } = pagination; // default pagination
+  const { page = 1, limit = 10 } = pagination;
 
   // Validate userId
   if (!userId) {
@@ -380,7 +382,7 @@ export const getUserHomeService = async (
     );
   }
 
-  // Fetch products by storeId (assuming userId is storeId)
+  // Fetch products with pagination
   const products = await storeProductModel
     .find()
     .skip((page - 1) * limit)
@@ -389,14 +391,32 @@ export const getUserHomeService = async (
     .populate("storeId", "-password -phoneNumber -email -role");
 
   const totalProducts = await storeProductModel.countDocuments({});
-
   const totalPages = Math.ceil(totalProducts / limit);
+
+  // Get all wishlist items for current user for storeProducts
+  const wishlistItems = await wishlistModel
+    .find({
+      userId: new Types.ObjectId(userId),
+      productType: "storeProduct",
+      productId: { $in: products.map((p) => p._id) },
+    })
+    .select("productId");
+
+  const wishlistProductIds = new Set(
+    wishlistItems.map((item) => item.productId.toString())
+  );
+
+  // Add isWishlisted flag to each product
+  const productsWithWishlistFlag = products.map((product) => ({
+    ...product.toObject(),
+    isWishlisted: wishlistProductIds.has(product._id.toString()),
+  }));
 
   return {
     success: true,
     message: "Products fetched successfully",
     data: {
-      products,
+      products: productsWithWishlistFlag,
       pagination: {
         totalProducts,
         totalPages,
