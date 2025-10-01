@@ -120,6 +120,10 @@ const storeProductSchema = new Schema({
     type: [additionalSectionSchema],
     default: []
   },
+  productType:{
+    type:String,
+    default:"storeProduct"
+  },
   createdAt: {
     type: Date,
     default: Date.now
