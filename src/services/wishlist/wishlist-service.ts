@@ -51,13 +51,12 @@ export const toggleWishlistService = async (
 
 export const getUserWishlistService = async (userId: string) => {
   return wishlistModel
-    .find({ userId })
-    .populate({
-      path: "productId",
-      model: (doc: any) => doc.productType, // dynamic refPath populate
-    })
+    .find({ userId: new Types.ObjectId(userId) })
+    .populate("productId") // dynamic refPath is used automatically
+    .lean() // optional, returns plain objects instead of Mongoose docs
     .exec();
 };
+
 
 export const removeFromWishlistService = async (userId: string, productId: string, productType: "storeProduct" | "userProduct") => {
   const deletedItem = await wishlistModel.findOneAndDelete({
