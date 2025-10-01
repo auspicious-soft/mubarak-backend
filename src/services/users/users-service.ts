@@ -369,9 +369,11 @@ export const deleteUserService = async (id: string, res: Response) => {
 export const getUserHomeService = async (
   userId: string,
   res: Response,
-  pagination: PaginationParams = {}
+  pagination: PaginationParams = {},
+  payload: any
 ) => {
   const { page = 1, limit = 10 } = pagination;
+  const { minPrice, maxPrice, description, order, orderColumn } = payload;
 
   // Validate userId
   if (!userId) {
@@ -382,15 +384,116 @@ export const getUserHomeService = async (
     );
   }
 
-  // Fetch products with pagination
-  const products = await storeProductModel
-    .find()
-    .skip((page - 1) * limit)
-    .limit(limit)
-    .sort({ createdAt: -1 })
-    .populate("storeId", "-password -phoneNumber -email -role");
+  // Build base query using queryBuilder for product name search
+  const { query: baseQuery, sort } = queryBuilder(
+    { description, order, orderColumn },
+    ["name", "shortDescription"]
+  );
 
-  const totalProducts = await storeProductModel.countDocuments({});
+  // Build additional filters
+  const additionalFilters: any = {};
+
+
+  // Filter by price range if provided
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    const priceConditions: any = {};
+    
+    if (minPrice !== undefined) {
+      priceConditions.$gte = minPrice;
+    }
+    
+    if (maxPrice !== undefined) {
+      priceConditions.$lte = maxPrice;
+    }
+    
+    additionalFilters['priceDetails.price'] = priceConditions;
+  }
+
+  // Combine queries
+  const finalQuery = { ...baseQuery, ...additionalFilters };
+
+  // If searching for store owner name or store name, we need to populate first
+  // then filter in memory, or use aggregation
+  let products;
+  let totalProducts;
+
+  if (description) {
+    // Use aggregation to search across populated store fields
+    const aggregationPipeline: any[] = [
+      {
+        $lookup: {
+          from: 'stores', // collection name (usually lowercase plural of model name)
+          localField: 'storeId',
+          foreignField: '_id',
+          as: 'store'
+        }
+      },
+      {
+        $unwind: '$store'
+      },
+      {
+        $match: {
+          $and: [
+            additionalFilters,
+            {
+              $or: [
+                { name: { $regex: description, $options: 'i' } },
+                { shortDescription: { $regex: description, $options: 'i' } },
+                { 'store.storeName': { $regex: description, $options: 'i' } },
+                { 'store.ownerName': { $regex: description, $options: 'i' } }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        $project: {
+          'store.password': 0,
+          'store.phoneNumber': 0,
+          'store.email': 0,
+          'store.role': 0
+        }
+      }
+    ];
+
+    // Add sorting if specified
+    if (Object.keys(sort).length > 0) {
+      aggregationPipeline.push({ $sort: sort });
+    } else {
+      aggregationPipeline.push({ $sort: { createdAt: -1 } });
+    }
+
+    // Get total count
+    const countPipeline = [...aggregationPipeline, { $count: 'total' }];
+    const countResult = await storeProductModel.aggregate(countPipeline);
+    totalProducts = countResult[0]?.total || 0;
+
+    // Add pagination
+    aggregationPipeline.push(
+      { $skip: (page - 1) * limit },
+      { $limit: limit }
+    );
+
+    products = await storeProductModel.aggregate(aggregationPipeline);
+
+    // Convert aggregation results to have storeId field
+    products = products.map(product => ({
+      ...product,
+      storeId: product.store,
+      store: undefined
+    }));
+  } else {
+    // Simple query without store search
+    products = await storeProductModel
+      .find(finalQuery)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort(Object.keys(sort).length > 0 ? sort : { createdAt: -1 })
+      .populate("storeId", "-password -phoneNumber -email -role");
+
+    totalProducts = await storeProductModel.countDocuments(finalQuery);
+  }
+
   const totalPages = Math.ceil(totalProducts / limit);
 
   // Get all wishlist items for current user for storeProducts
@@ -408,7 +511,7 @@ export const getUserHomeService = async (
 
   // Add isWishlisted flag to each product
   const productsWithWishlistFlag = products.map((product) => ({
-    ...product.toObject(),
+    ...product.toObject?.() || product,
     isWishlisted: wishlistProductIds.has(product._id.toString()),
   }));
 

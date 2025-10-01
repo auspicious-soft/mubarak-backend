@@ -135,7 +135,7 @@ export const getUserHome = async (req: Request, res: Response) => {
             message: "User ID is required"
           });
         }
-    const response = await getUserHomeService(userId, res,req.query);
+    const response = await getUserHomeService(userId, res,req.body,req.body);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);
