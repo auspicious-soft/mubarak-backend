@@ -35,7 +35,7 @@ export const getAllStoreProducts = async (req: Request, res: Response) => {
       .json({ success: false, message: message || "An error occurred" });
   }
 };
-
+ 
 // Get Store Product by ID
 export const getStoreProductById = async (req: Request, res: Response) => {
   try {
