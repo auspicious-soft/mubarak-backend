@@ -74,8 +74,6 @@ jobs:
               -e PORT='${{ secrets.PORT }}' \
               -e RESEND_API_KEY='${{ secrets.RESEND_API_KEY }}' \
               -e COMPANY_RESEND_GMAIL_ACCOUNT='${{ secrets.COMPANY_RESEND_GMAIL_ACCOUNT }}' \
-              -e AUTHTOKEN='${{ secrets.AUTHTOKEN }}' \
-              -e FROMPHONENUMBER='${{ secrets.FROMPHONENUMBER }}' \
               -e AUTH_SECRET='${{ secrets.AUTH_SECRET }}' \
               -e JWT_SALT='${{ secrets.JWT_SALT }}' \
               -e AWS_ACCESS_KEY_ID='${{ secrets.AWS_ACCESS_KEY_ID }}' \
