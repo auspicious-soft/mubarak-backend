@@ -171,7 +171,7 @@ export const getStoreAndProductsByid = async (req: Request, res: Response) => {
             message: "User ID is required"
           });
         }
-    const response = await getStoreAndProductsByidService(userId,req.query,req.params.id, res);
+    const response = await getStoreAndProductsByidService(userId,req.body,req.params.id, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);

@@ -124,14 +124,8 @@ const storeProductSchema = new Schema({
     type:String,
     default:"storeProduct"
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
+},{
+  timestamps:true
 });
 
 // Middleware to update the updatedAt field on save

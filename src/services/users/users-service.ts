@@ -590,11 +590,7 @@ export const getStoreAndProductsByidService = async (
   // ✅ Fetch store by ID
   const store = await storeModel.findById(storeId);
   if (!store) {
-    return errorResponseHandler(
-      "Store not found",
-      httpStatusCode.NOT_FOUND,
-      res
-    );
+    return errorResponseHandler("Store not found", httpStatusCode.NOT_FOUND, res);
   }
 
   // ✅ Fetch store-related products with pagination
@@ -602,17 +598,33 @@ export const getStoreAndProductsByidService = async (
     .find({ storeId })
     .skip((page - 1) * limit)
     .limit(limit)
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean(); // use lean() to get plain JS objects
 
   const totalProducts = await storeProductModel.countDocuments({ storeId });
   const totalPages = Math.ceil(totalProducts / limit);
+
+  // ✅ Get all wishlist productIds for this user (only storeProduct type)
+  const wishlist = await wishlistModel.find({
+    userId,
+    productType: "storeProduct",
+    productId: { $in: products.map((p) => p._id) },
+  });
+
+  const wishlistProductIds = new Set(wishlist.map((w) => w.productId.toString()));
+
+  // ✅ Attach `isWishlisted` flag to each product
+  const productsWithWishlist = products.map((p) => ({
+    ...p,
+    isWishlisted: wishlistProductIds.has(p._id.toString()),
+  }));
 
   return {
     success: true,
     message: "Store and products fetched successfully",
     data: {
       store,
-      products,
+      products: productsWithWishlist,
       pagination: {
         totalProducts,
         totalPages,
