@@ -52,7 +52,13 @@ export const toggleWishlistService = async (
 export const getUserWishlistService = async (userId: string) => {
   return wishlistModel
     .find({ userId: new Types.ObjectId(userId) })
-    .populate("productId") // dynamic refPath is used automatically
+    .populate({
+      path: "productId",
+      populate: {
+        path: "storeId", // nested populate inside productId
+        model: "store",  // explicitly point to store model
+      },
+    })// dynamic refPath is used automatically
     .lean() // optional, returns plain objects instead of Mongoose docs
     .exec();
 };
