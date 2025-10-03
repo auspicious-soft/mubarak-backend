@@ -22,10 +22,10 @@ export const createStoreProductService = async (payload: any, res: Response) => 
       message: "Store product created successfully",
       data: storeProduct
     };
-  } catch (error) {
+  } catch (error:any) {
     console.error("Error creating store product:", error);
     return errorResponseHandler(
-      "Failed to create store product",
+      error.message || "Failed to create store product",
       httpStatusCode.INTERNAL_SERVER_ERROR,
       res
     );
@@ -199,7 +199,8 @@ export const getStoreProductsByStoreIdForAdminService = async (storeId: string, 
       .find(query)
       .sort(sort)
       .skip(offset)
-      .limit(limit);
+      .limit(limit)
+      .populate('storeId');
 
     return {
       success: true,

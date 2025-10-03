@@ -18,7 +18,7 @@ import { authMiddleware } from "../middleware/check-auth";
 import { createAddress, deleteAddress, getUserAddresses, updateAddress } from "../controllers/address/address-controller";
 import {  getUserWishlistController, removeFromWishlistController, toggleWishlist } from "../controllers/wishlist/wishlist-controller";
 import { addToCart, clearCart, getCart, removeCartItem, updateCartItem } from "../controllers/cart/cart-controller";
-import { getStoreProductById } from "../controllers/store-products/store-products-controller";
+import { getStoreProductById, getStoreProductsByStoreIdForAdmin } from "../controllers/store-products/store-products-controller";
 
 const router = Router();
 
@@ -45,6 +45,7 @@ router.get("/home/data",authMiddleware,getUserHome)
 router.get("/home/stores",authMiddleware,getUserHomeStores)
 router.get("/home/stores/:id",authMiddleware,getStoreAndProductsByid)
 router.get("/store/product/:id",authMiddleware,getStoreProductById)
+router.get("/store/:storeId/products", getStoreProductsByStoreIdForAdmin)
 
 // ADDRESS
 router.route("/address/user")
