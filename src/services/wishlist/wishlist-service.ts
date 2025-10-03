@@ -63,7 +63,6 @@ export const getUserWishlistService = async (userId: string) => {
     .exec();
 };
 
-
 export const removeFromWishlistService = async (userId: string, productId: string, productType: "storeProduct" | "userProduct") => {
   const deletedItem = await wishlistModel.findOneAndDelete({
     userId,
