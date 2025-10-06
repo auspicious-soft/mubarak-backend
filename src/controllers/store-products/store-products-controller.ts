@@ -107,8 +107,15 @@ export const getStoreProductsByStoreIdForAdmin = async (req: Request, res: Respo
         message: "Store ID is required"
       });
     }
+      const userId = (req as any).user?.id;
+        if (!userId) {
+          return res.status(httpStatusCode.BAD_REQUEST).json({
+            success: false,
+            message: "User ID is required"
+          });
+        }
     
-    const response = await getStoreProductsByStoreIdForAdminService(storeId, req.query);
+    const response = await getStoreProductsByStoreIdForAdminService(storeId, req.query,userId);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);

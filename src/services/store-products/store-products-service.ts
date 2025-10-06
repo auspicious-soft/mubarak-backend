@@ -203,8 +203,7 @@ export const deleteStoreProductService = async (
 
 
 // Admin: Get Products by Store ID
-export const getStoreProductsByStoreIdForAdminService = async (storeId: string, payload: any) => {
-  try {
+export const getStoreProductsByStoreIdForAdminService = async (storeId: string, payload: any,userId:string) => {
     const page = parseInt(payload.page as string) || 1;
     const limit = parseInt(payload.limit as string) || 10;
     const offset = (page - 1) * limit;
@@ -216,12 +215,22 @@ export const getStoreProductsByStoreIdForAdminService = async (storeId: string, 
     const query = { storeId, ...(Object.keys(searchQuery).length > 0 ? searchQuery : {}) };
 
     const totalProducts = await storeProductModel.countDocuments(query);
-    const products = await storeProductModel
+    let products = await storeProductModel
       .find(query)
       .sort(sort)
       .skip(offset)
       .limit(limit)
-      .populate('storeId');
+      .populate('storeId')
+      .lean();
+
+      const wishlist = await wishlistModel.find({ userId, productType: "storeProduct", productId: { $in: products.map(p => p._id) } }).lean();
+
+      const wishlistSet = new Set(wishlist.map(w => w.productId.toString()));        
+      
+      products = products.map(product => ({
+        ...product,
+        isWishlisted: wishlistSet.has(product._id.toString())
+      }));
 
     return {
       success: true,
@@ -233,12 +242,4 @@ export const getStoreProductsByStoreIdForAdminService = async (storeId: string, 
         total: totalProducts
       }
     };
-  } catch (error) {
-    console.error("Error fetching store products:", error);
-    return {
-      success: false,
-      message: "Failed to retrieve store products",
-      data: null
-    };
-  }
 };
