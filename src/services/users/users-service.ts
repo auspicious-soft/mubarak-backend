@@ -532,9 +532,11 @@ export const getUserHomeService = async (
 export const getUserHomeStoresService = async (
   userId: string,
   res: Response,
-  pagination: PaginationParams = {}
+  pagination: PaginationParams = {},
+  query: any = {}
 ) => {
   const { page = 1, limit = 10 } = pagination; // default pagination
+  const { sortBy } = query;
 
   // Validate userId
   if (!userId) {
@@ -545,20 +547,37 @@ export const getUserHomeStoresService = async (
     );
   }
 
-  // Fetch products by storeId (assuming userId is storeId)
+  // ✅ Sorting logic
+  let sort: any = { createdAt: -1 }; // default latest
+  if (sortBy) {
+    switch (sortBy) {
+      case "alphaAsc": // A → Z
+        sort = { storeName: 1 };
+        break;
+      case "alphaDesc": // Z → A
+        sort = { storeName: -1 };
+        break;
+      case "latest": // Newest first
+        sort = { createdAt: -1 };
+        break;
+      default:
+        sort = { createdAt: -1 };
+    }
+  }
+
+  // Fetch stores
   const products = await storeModel
     .find()
     .skip((page - 1) * limit)
     .limit(limit)
-    .sort({ createdAt: -1 });
+    .sort(sort);
 
   const totalProducts = await storeModel.countDocuments({});
-
   const totalPages = Math.ceil(totalProducts / limit);
 
   return {
     success: true,
-    message: "Products fetched successfully",
+    message: "Stores fetched successfully",
     data: {
       products,
       pagination: {
@@ -570,6 +589,7 @@ export const getUserHomeStoresService = async (
     },
   };
 };
+
 export const getStoreAndProductsByidService = async (
   userId: string,
   pagination: PaginationParams = {},

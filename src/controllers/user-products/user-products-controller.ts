@@ -45,7 +45,7 @@ export const getAllUserProducts = async (req: Request, res: Response) => {
         message: "User not authenticated"
       });
     }
-    const response = await getAllUserProductsService(req.query,userId);
+    const response = await getAllUserProductsService(req.body,userId);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);

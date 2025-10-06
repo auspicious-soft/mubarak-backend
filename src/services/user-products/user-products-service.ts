@@ -33,7 +33,7 @@ export const getAllUserProductsService = async (query: any, userId: string) => {
   // ✅ Exclude current user's products
   searchQuery.userId = { $ne: userId };
 
-  // Handle price filtering (min/max)
+  // ✅ Handle price filtering (min/max)
   if (query.minPrice || query.maxPrice) {
     searchQuery.price = {};
     if (query.minPrice) {
@@ -44,22 +44,40 @@ export const getAllUserProductsService = async (query: any, userId: string) => {
     }
   }
 
-  // Handle price sorting (low to high / high to low)
-  if (query.priceSort) {
-    if (query.priceSort === 'asc' || query.priceSort === 'low') {
-      sort = { price: 1, ...sort };
-    } else if (query.priceSort === 'desc' || query.priceSort === 'high') {
-      sort = { price: -1, ...sort };
+  // ✅ Handle sorting
+  if (query.sortBy) {
+    switch (query.sortBy) {
+      case "latest": // Newest first
+        sort = { createdAt: -1 };
+        break;
+      case "priceLowToHigh": // Price ascending
+        sort = { price: 1 };
+        break;
+      case "priceHighToLow": // Price descending
+        sort = { price: -1 };
+        break;
+      case "alphaAsc": // Alphabetical A → Z
+        sort = { productName: 1 };
+        break;
+      case "alphaDesc": // Alphabetical Z → A
+        sort = { productName: -1 };
+        break;
+      default:
+        sort = { createdAt: -1 }; // fallback to latest
     }
+  } else {
+    // fallback: use queryBuilder’s sort or default latest
+    sort = Object.keys(sort).length > 0 ? sort : { createdAt: -1 };
   }
 
+  // ✅ Get total + paginated products
   const totalProducts = await userProductModel.countDocuments(searchQuery);
   const products = await userProductModel
     .find(searchQuery)
     .sort(sort)
     .skip(offset)
     .limit(limit)
-    .populate("userId")
+    .populate("userId");
 
   return {
     success: true,
@@ -68,8 +86,8 @@ export const getAllUserProductsService = async (query: any, userId: string) => {
       products,
       page,
       limit,
-      total: totalProducts
-    }
+      total: totalProducts,
+    },
   };
 };
 

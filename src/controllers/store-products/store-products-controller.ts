@@ -26,7 +26,14 @@ export const createStoreProduct = async (req: Request, res: Response) => {
 // Get All Store Products
 export const getAllStoreProducts = async (req: Request, res: Response) => {
   try {
-    const response = await getAllStoreProductsService(req.user.id,req.query);
+    const userId = (req as any).user?.id;
+        if (!userId) {
+          return res.status(httpStatusCode.BAD_REQUEST).json({
+            success: false,
+            message: "User ID is required"
+          });
+        }
+    const response = await getAllStoreProductsService(userId,req.query);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);
@@ -39,7 +46,14 @@ export const getAllStoreProducts = async (req: Request, res: Response) => {
 // Get Store Product by ID
 export const getStoreProductById = async (req: Request, res: Response) => {
   try {
-    const response = await getStoreProductByIdService(req.params.id, res);
+    const userId = (req as any).user?.id;
+        if (!userId) {
+          return res.status(httpStatusCode.BAD_REQUEST).json({
+            success: false,
+            message: "User ID is required"
+          });
+        }
+    const response = await getStoreProductByIdService(req.params.id,userId, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);
@@ -65,7 +79,14 @@ export const updateStoreProduct = async (req: Request, res: Response) => {
 // Delete Store Product
 export const deleteStoreProduct = async (req: Request, res: Response) => {
   try {
-    const response = await deleteStoreProductService(req.params.id,req.user.id, res);
+    const userId = (req as any).user?.id;
+        if (!userId) {
+          return res.status(httpStatusCode.BAD_REQUEST).json({
+            success: false,
+            message: "User ID is required"
+          });
+        }
+    const response = await deleteStoreProductService(req.params.id,userId, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);

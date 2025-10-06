@@ -3,6 +3,7 @@ import { errorResponseHandler } from "../../lib/errors/error-response-handler";
 import { httpStatusCode } from "../../lib/constant";
 import { queryBuilder } from "../../utils";
 import { storeProductModel } from "../../models/store-products/store-products-schema";
+import { wishlistModel } from "../../models/wishlist/wishlist-schema";
 
 // Create Store Product
 export const createStoreProductService = async (payload: any, res: Response) => {
@@ -85,19 +86,39 @@ export const getAllStoreProductsService = async (storeId:any,payload: any) => {
 };
 
 // Get Store Product by ID
-export const getStoreProductByIdService = async (id: string, res: Response) => {
-    const product = await storeProductModel.findById(id).populate('storeId').lean();
+export const getStoreProductByIdService = async (id: string,userId: string,res: Response) => {
+  const product = await storeProductModel
+    .findById(id)
+    .populate("storeId")
+    .lean();
 
-    if (!product) {
-      return errorResponseHandler("Store product not found", httpStatusCode.NOT_FOUND, res);
-    }
+  if (!product) {
+    return errorResponseHandler(
+      "Store product not found",
+      httpStatusCode.NOT_FOUND,
+      res
+    );
+  }
 
-    return {
-      success: true,
-      message: "Store product retrieved successfully",
-      data: product
-    };
+  // ✅ Check if this product is in user's wishlist
+  let isWishlisted = false;
+  if (userId) {
+    const wishlistEntry = await wishlistModel.findOne({
+      userId,
+      productId: id,
+      productType: "storeProduct",
+    });
+    isWishlisted = !!wishlistEntry;
+  }
 
+  return {
+    success: true,
+    message: "Store product retrieved successfully",
+    data: {
+      ...product,
+      isWishlisted,
+    },
+  };
 };
 
 // Update Store Product
