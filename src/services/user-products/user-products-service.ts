@@ -57,10 +57,10 @@ export const getAllUserProductsService = async (query: any, userId: string) => {
         sort = { price: -1 };
         break;
       case "alphaAsc": // Alphabetical A → Z
-        sort = { productName:-1 };
+        sort = { productName:1 };
         break;
       case "alphaDesc": // Alphabetical Z → A
-        sort = { productName: 1 };
+        sort = { productName: -1 };
         break;
       default:
         sort = { createdAt: -1 }; // fallback to latest
@@ -75,6 +75,7 @@ export const getAllUserProductsService = async (query: any, userId: string) => {
   const products = await userProductModel
     .find(searchQuery)
     .sort(sort)
+    .collation({ locale: "en", strength: 2 })
     .skip(offset)
     .limit(limit)
     .populate("userId");
