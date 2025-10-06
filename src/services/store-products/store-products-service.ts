@@ -4,6 +4,7 @@ import { httpStatusCode } from "../../lib/constant";
 import { queryBuilder } from "../../utils";
 import { storeProductModel } from "../../models/store-products/store-products-schema";
 import { wishlistModel } from "../../models/wishlist/wishlist-schema";
+import { cartModel } from "../../models/cart/cart-schema";
 
 // Create Store Product
 export const createStoreProductService = async (payload: any, res: Response) => {
@@ -86,7 +87,11 @@ export const getAllStoreProductsService = async (storeId:any,payload: any) => {
 };
 
 // Get Store Product by ID
-export const getStoreProductByIdService = async (id: string,userId: string,res: Response) => {
+export const getStoreProductByIdService = async (
+  id: string,
+  userId: string,
+  res: Response
+) => {
   const product = await storeProductModel
     .findById(id)
     .populate("storeId")
@@ -111,12 +116,26 @@ export const getStoreProductByIdService = async (id: string,userId: string,res: 
     isWishlisted = !!wishlistEntry;
   }
 
+  // ✅ Check if this product is in user's cart
+  let isInCart = false;
+  if (userId) {
+    const cart = await cartModel.findOne({
+      userId,
+      "items.storeProduct": id, // check inside cart items
+    });
+
+    if (cart) {
+      isInCart = true;
+    }
+  }
+
   return {
     success: true,
     message: "Store product retrieved successfully",
     data: {
       ...product,
       isWishlisted,
+      isInCart, // 👈 new flag
     },
   };
 };
