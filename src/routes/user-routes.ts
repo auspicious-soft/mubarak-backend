@@ -19,6 +19,7 @@ import { createAddress, deleteAddress, getUserAddresses, updateAddress } from ".
 import {  getUserWishlistController, removeFromWishlistController, toggleWishlist } from "../controllers/wishlist/wishlist-controller";
 import { addToCart, clearCart, getCart, removeCartItem, updateCartItem } from "../controllers/cart/cart-controller";
 import { getStoreProductById, getStoreProductsByStoreIdForAdmin } from "../controllers/store-products/store-products-controller";
+import { addStoreProductReview, getStoreProductReviews } from "../controllers/review/review-controller";
 
 const router = Router();
 
@@ -71,7 +72,11 @@ router.route("/cart/item/:itemId").patch(authMiddleware, updateCartItem)
   .delete(authMiddleware, removeCartItem);
 
 //Open-market routes
-router.get("/open-market/products", authMiddleware, getAllUserProducts);
+router.post("/open-market/products", authMiddleware, getAllUserProducts);
 router.get("/open-market/products/:id", authMiddleware, getUserProductById);
+
+// Review routes
+router.post("/product/review",authMiddleware, addStoreProductReview);
+router.get("/product/:productId/reviews",authMiddleware, getStoreProductReviews);
 
 export { router };
