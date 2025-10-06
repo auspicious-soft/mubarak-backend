@@ -19,6 +19,10 @@ const userSchema = new mongoose.Schema({
       required: false,
       trim: true,
     },
+    image:{
+      type:String,
+      default:"web/logo/Frame1984078080.png"
+    },
     lastName: {
       type: String,
       required: false,

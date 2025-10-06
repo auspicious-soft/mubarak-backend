@@ -117,7 +117,14 @@ export const updateUser = async (req: Request, res: Response) => {
 // Delete User
 export const deleteUser = async (req: Request, res: Response) => {
   try {
-    const response = await deleteUserService(req.params.id, res);
+    const userId = (req as any).user?.id;
+        if (!userId) {
+          return res.status(httpStatusCode.BAD_REQUEST).json({
+            success: false,
+            message: "User ID is required"
+          });
+        }
+    const response = await deleteUserService(userId, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);
