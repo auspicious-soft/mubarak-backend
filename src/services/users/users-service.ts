@@ -17,6 +17,7 @@ import { storeProductModel } from "../../models/store-products/store-products-sc
 import { storeModel } from "../../models/stores/stores-schema";
 import { wishlistModel } from "../../models/wishlist/wishlist-schema";
 import { Types } from "mongoose";
+import { productReviewModel } from "../../models/review/review-schema";
 interface PaginationParams {
   page?: number;
   limit?: number;
@@ -366,6 +367,7 @@ export const deleteUserService = async (id: string, res: Response) => {
     message: "User deleted successfully",
   };
 };
+
 export const getUserHomeService = async (
   userId: string,
   res: Response,
@@ -375,128 +377,94 @@ export const getUserHomeService = async (
   const { page = 1, limit = 10 } = pagination;
   const { minPrice, maxPrice, description, order, orderColumn } = payload;
 
-  // Validate userId
   if (!userId) {
-    return errorResponseHandler(
-      "User ID is required",
-      httpStatusCode.BAD_REQUEST,
-      res
-    );
+    return errorResponseHandler("User ID is required", httpStatusCode.BAD_REQUEST, res);
   }
 
-  // Build base query using queryBuilder for product name search
   const { query: baseQuery, sort } = queryBuilder(
     { description, order, orderColumn },
     ["name", "shortDescription"]
   );
 
-  // Build additional filters
   const additionalFilters: any = {};
 
-
-  // Filter by price range if provided
   if (minPrice !== undefined || maxPrice !== undefined) {
     const priceConditions: any = {};
-    
-    if (minPrice !== undefined) {
-      priceConditions.$gte = minPrice;
-    }
-    
-    if (maxPrice !== undefined) {
-      priceConditions.$lte = maxPrice;
-    }
-    
-    additionalFilters['priceDetails.price'] = priceConditions;
+    if (minPrice !== undefined) priceConditions.$gte = minPrice;
+    if (maxPrice !== undefined) priceConditions.$lte = maxPrice;
+    additionalFilters["priceDetails.price"] = priceConditions;
   }
 
-  // Combine queries
   const finalQuery = { ...baseQuery, ...additionalFilters };
-
-  // If searching for store owner name or store name, we need to populate first
-  // then filter in memory, or use aggregation
   let products;
   let totalProducts;
 
   if (description) {
-    // Use aggregation to search across populated store fields
     const aggregationPipeline: any[] = [
       {
         $lookup: {
-          from: 'stores', // collection name (usually lowercase plural of model name)
-          localField: 'storeId',
-          foreignField: '_id',
-          as: 'store'
-        }
+          from: "stores",
+          localField: "storeId",
+          foreignField: "_id",
+          as: "store",
+        },
       },
-      {
-        $unwind: '$store'
-      },
+      { $unwind: "$store" },
       {
         $match: {
           $and: [
             additionalFilters,
             {
               $or: [
-                { name: { $regex: description, $options: 'i' } },
-                { shortDescription: { $regex: description, $options: 'i' } },
-                { 'store.storeName': { $regex: description, $options: 'i' } },
-                { 'store.ownerName': { $regex: description, $options: 'i' } }
-              ]
-            }
-          ]
-        }
+                { name: { $regex: description, $options: "i" } },
+                { shortDescription: { $regex: description, $options: "i" } },
+                { "store.storeName": { $regex: description, $options: "i" } },
+                { "store.ownerName": { $regex: description, $options: "i" } },
+              ],
+            },
+          ],
+        },
       },
       {
         $project: {
-          'store.password': 0,
-          'store.phoneNumber': 0,
-          'store.email': 0,
-          'store.role': 0
-        }
-      }
+          "store.password": 0,
+          "store.phoneNumber": 0,
+          "store.email": 0,
+          "store.role": 0,
+        },
+      },
     ];
 
-    // Add sorting if specified
-    if (Object.keys(sort).length > 0) {
-      aggregationPipeline.push({ $sort: sort });
-    } else {
-      aggregationPipeline.push({ $sort: { createdAt: -1 } });
-    }
+    if (Object.keys(sort).length > 0) aggregationPipeline.push({ $sort: sort });
+    else aggregationPipeline.push({ $sort: { createdAt: -1 } });
 
-    // Get total count
-    const countPipeline = [...aggregationPipeline, { $count: 'total' }];
+    const countPipeline = [...aggregationPipeline, { $count: "total" }];
     const countResult = await storeProductModel.aggregate(countPipeline);
     totalProducts = countResult[0]?.total || 0;
 
-    // Add pagination
-    aggregationPipeline.push(
-      { $skip: (page - 1) * limit },
-      { $limit: limit }
-    );
+    aggregationPipeline.push({ $skip: (page - 1) * limit }, { $limit: limit });
 
     products = await storeProductModel.aggregate(aggregationPipeline);
-
-    // Convert aggregation results to have storeId field
-    products = products.map(product => ({
+    products = products.map((product) => ({
       ...product,
       storeId: product.store,
-      store: undefined
+      store: undefined,
     }));
   } else {
-    // Simple query without store search
     products = await storeProductModel
       .find(finalQuery)
       .skip((page - 1) * limit)
       .limit(limit)
       .sort(Object.keys(sort).length > 0 ? sort : { createdAt: -1 })
-      .populate("storeId", "-password -phoneNumber -email -role");
+      .populate("storeId", "-password -phoneNumber -email -role")
+      .lean();
 
     totalProducts = await storeProductModel.countDocuments(finalQuery);
   }
 
   const totalPages = Math.ceil(totalProducts / limit);
 
-  // Get all wishlist items for current user for storeProducts
+  // ✅ Wishlist items for user
   const wishlistItems = await wishlistModel
     .find({
       userId: new Types.ObjectId(userId),
@@ -505,21 +473,41 @@ export const getUserHomeService = async (
     })
     .select("productId");
 
-  const wishlistProductIds = new Set(
-    wishlistItems.map((item) => item.productId.toString())
+  const wishlistProductIds = new Set(wishlistItems.map((item) => item.productId.toString()));
+
+  // ✅ Fetch ratings in one go for all product IDs
+  const productIds = products.map((p) => p._id);
+  const ratingData = await productReviewModel.aggregate([
+    { $match: { productId: { $in: productIds } } },
+    {
+      $group: {
+        _id: "$productId",
+        averageRating: { $avg: "$rating" },
+        totalReviews: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const ratingMap = new Map(
+    ratingData.map((r) => [r._id.toString(), { averageRating: r.averageRating, totalReviews: r.totalReviews }])
   );
 
-  // Add isWishlisted flag to each product
-  const productsWithWishlistFlag = products.map((product) => ({
-    ...product.toObject?.() || product,
-    isWishlisted: wishlistProductIds.has(product._id.toString()),
-  }));
+  // ✅ Merge wishlist + rating info
+  const productsWithExtras = products.map((product) => {
+    const ratingInfo = ratingMap.get(product._id.toString()) || { averageRating: 0, totalReviews: 0 };
+    return {
+      ...product,
+      isWishlisted: wishlistProductIds.has(product._id.toString()),
+      averageRating: Number(ratingInfo.averageRating.toFixed(1)) || 0,
+      totalReviews: ratingInfo.totalReviews || 0,
+    };
+  });
 
   return {
     success: true,
     message: "Products fetched successfully",
     data: {
-      products: productsWithWishlistFlag,
+      products: productsWithExtras,
       pagination: {
         totalProducts,
         totalPages,
@@ -529,16 +517,17 @@ export const getUserHomeService = async (
     },
   };
 };
+
 export const getUserHomeStoresService = async (
   userId: string,
   res: Response,
   pagination: PaginationParams = {},
   query: any = {}
 ) => {
-  const { page = 1, limit = 10 } = pagination; // default pagination
+  const { page = 1, limit = 10 } = pagination;
   const { sortBy } = query;
 
-  // Validate userId
+  // ✅ Validate userId
   if (!userId) {
     return errorResponseHandler(
       "User ID is required",
@@ -548,16 +537,16 @@ export const getUserHomeStoresService = async (
   }
 
   // ✅ Sorting logic
-  let sort: any = { createdAt: -1 }; // default latest
+  let sort: any = { createdAt: -1 };
   if (sortBy) {
     switch (sortBy) {
-      case "alphaAsc": // A → Z
+      case "alphaAsc":
         sort = { storeName: 1 };
         break;
-      case "alphaDesc": // Z → A
+      case "alphaDesc":
         sort = { storeName: -1 };
         break;
-      case "latest": // Newest first
+      case "latest":
         sort = { createdAt: -1 };
         break;
       default:
@@ -565,23 +554,84 @@ export const getUserHomeStoresService = async (
     }
   }
 
-  // Fetch stores
-  const products = await storeModel
+  // ✅ Fetch stores
+  const stores = await storeModel
     .find()
     .skip((page - 1) * limit)
     .limit(limit)
-    .sort(sort);
+    .sort(sort)
+    .lean();
 
-  const totalProducts = await storeModel.countDocuments({});
-  const totalPages = Math.ceil(totalProducts / limit);
+  const totalStores = await storeModel.countDocuments({});
+  const totalPages = Math.ceil(totalStores / limit);
+
+  // ✅ Fetch all product IDs per store
+  const storeIds = stores.map((s) => s._id);
+  const storeProducts = await storeProductModel
+    .find({ storeId: { $in: storeIds } })
+    .select("_id storeId")
+    .lean();
+
+  const storeToProductIdsMap = new Map<string, Types.ObjectId[]>();
+  storeProducts.forEach((p) => {
+    const key = p.storeId.toString();
+    if (!storeToProductIdsMap.has(key)) storeToProductIdsMap.set(key, []);
+    storeToProductIdsMap.get(key)!.push(p._id);
+  });
+
+  // ✅ Aggregate reviews for all products from these stores
+  const allProductIds = storeProducts.map((p) => p._id);
+  const reviewAgg = await productReviewModel.aggregate([
+    { $match: { productId: { $in: allProductIds } } },
+    {
+      $group: {
+        _id: "$productId",
+        avgRating: { $avg: "$rating" },
+      },
+    },
+  ]);
+
+  // Map each product's rating
+  const productRatingMap = new Map<string, number>();
+  reviewAgg.forEach((r) => {
+    productRatingMap.set(r._id.toString(), r.avgRating);
+  });
+
+  // ✅ Compute store average rating (from all its product ratings)
+  const storeRatings = new Map<string, { avg: number; count: number }>();
+  storeToProductIdsMap.forEach((productIds, storeId) => {
+    const ratings = productIds
+      .map((id) => productRatingMap.get(id.toString()))
+      .filter((r): r is number => typeof r === "number");
+    if (ratings.length > 0) {
+      const avg =
+        ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
+      storeRatings.set(storeId, { avg: avg, count: ratings.length });
+    } else {
+      storeRatings.set(storeId, { avg: 0, count: 0 });
+    }
+  });
+
+  // ✅ Merge store rating info into store list
+  const storesWithRatings = stores.map((store) => {
+    const ratingData = storeRatings.get(store._id.toString()) || {
+      avg: 0,
+      count: 0,
+    };
+    return {
+      ...store,
+      averageRating: Number(ratingData.avg.toFixed(1)),
+      totalRatedProducts: ratingData.count,
+    };
+  });
 
   return {
     success: true,
     message: "Stores fetched successfully",
     data: {
-      products,
+      products: storesWithRatings,
       pagination: {
-        totalProducts,
+        totalStores,
         totalPages,
         currentPage: page,
         pageSize: limit,
@@ -598,7 +648,7 @@ export const getStoreAndProductsByidService = async (
 ) => {
   const { page = 1, limit = 10 } = pagination;
 
-  // Validate userId
+  // ✅ Validate userId
   if (!userId) {
     return errorResponseHandler(
       "User ID is required",
@@ -607,44 +657,106 @@ export const getStoreAndProductsByidService = async (
     );
   }
 
-  // ✅ Fetch store by ID
-  const store = await storeModel.findById(storeId);
+  // ✅ Validate store
+  const store = await storeModel.findById(storeId).lean();
   if (!store) {
     return errorResponseHandler("Store not found", httpStatusCode.NOT_FOUND, res);
   }
 
-  // ✅ Fetch store-related products with pagination
+  // ✅ Fetch paginated products for this store
   const products = await storeProductModel
     .find({ storeId })
     .skip((page - 1) * limit)
     .limit(limit)
     .sort({ createdAt: -1 })
-    .lean(); // use lean() to get plain JS objects
+    .lean();
 
   const totalProducts = await storeProductModel.countDocuments({ storeId });
   const totalPages = Math.ceil(totalProducts / limit);
 
-  // ✅ Get all wishlist productIds for this user (only storeProduct type)
-  const wishlist = await wishlistModel.find({
-    userId,
-    productType: "storeProduct",
-    productId: { $in: products.map((p) => p._id) },
-  });
+  // ✅ Gather product IDs for review + wishlist checks
+  const productIds = products.map((p) => p._id);
+
+  // ✅ Wishlist
+  const wishlist = await wishlistModel
+    .find({
+      userId: new Types.ObjectId(userId),
+      productType: "storeProduct",
+      productId: { $in: productIds },
+    })
+    .select("productId");
 
   const wishlistProductIds = new Set(wishlist.map((w) => w.productId.toString()));
 
-  // ✅ Attach `isWishlisted` flag to each product
-  const productsWithWishlist = products.map((p) => ({
-    ...p,
-    isWishlisted: wishlistProductIds.has(p._id.toString()),
-  }));
+  // ✅ Aggregate product reviews for these products
+  const productReviewAgg = await productReviewModel.aggregate([
+    { $match: { productId: { $in: productIds } } },
+    {
+      $group: {
+        _id: "$productId",
+        averageRating: { $avg: "$rating" },
+        totalReviews: { $sum: 1 },
+      },
+    },
+  ]);
 
+  const productReviewMap = new Map(
+    productReviewAgg.map((r) => [
+      r._id.toString(),
+      { averageRating: r.averageRating, totalReviews: r.totalReviews },
+    ])
+  );
+
+  // ✅ Merge wishlist + review data into products
+  const productsWithData = products.map((p) => {
+    const review = productReviewMap.get(p._id.toString()) || {
+      averageRating: 0,
+      totalReviews: 0,
+    };
+    return {
+      ...p,
+      isWishlisted: wishlistProductIds.has(p._id.toString()),
+      averageRating: Number(review.averageRating?.toFixed(1)) || 0,
+      totalReviews: review.totalReviews,
+    };
+  });
+
+  // ✅ Calculate store’s overall rating
+  // Get all productIds for this store (not only paginated ones)
+  const allStoreProducts = await storeProductModel
+    .find({ storeId })
+    .select("_id")
+    .lean();
+
+  const allProductIds = allStoreProducts.map((p) => p._id);
+
+  const storeRatingAgg = await productReviewModel.aggregate([
+    { $match: { productId: { $in: allProductIds } } },
+    {
+      $group: {
+        _id: null,
+        overallAverageRating: { $avg: "$rating" },
+        totalStoreReviews: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const storeRatingData = storeRatingAgg[0] || {
+    overallAverageRating: 0,
+    totalStoreReviews: 0,
+  };
+
+  // ✅ Final response
   return {
     success: true,
     message: "Store and products fetched successfully",
     data: {
-      store,
-      products: productsWithWishlist,
+      store: {
+        ...store,
+        overallRating: Number(storeRatingData.overallAverageRating?.toFixed(1)) || 0,
+        totalReviews: storeRatingData.totalStoreReviews,
+      },
+      products: productsWithData,
       pagination: {
         totalProducts,
         totalPages,

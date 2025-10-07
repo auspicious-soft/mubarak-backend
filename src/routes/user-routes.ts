@@ -104,7 +104,7 @@ router
 router
   .route("/cart/item/:itemId")
   .patch(authMiddleware, updateCartItem)
-  .delete(authMiddleware, removeCartItem);
+  .post(authMiddleware, removeCartItem);
 
 //Open-market routes
 router.post("/open-market/products", authMiddleware, getAllUserProducts);
