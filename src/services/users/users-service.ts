@@ -377,9 +377,6 @@ export const getUserHomeService = async (
   const { page = 1, limit = 10 } = pagination;
   const { minPrice, maxPrice, description, order, orderColumn } = payload;
 
-  if (!userId) {
-    return errorResponseHandler("User ID is required", httpStatusCode.BAD_REQUEST, res);
-  }
 
   const { query: baseQuery, sort } = queryBuilder(
     { description, order, orderColumn },
@@ -527,14 +524,6 @@ export const getUserHomeStoresService = async (
   const { page = 1, limit = 10 } = pagination;
   const { sortBy } = query;
 
-  // ✅ Validate userId
-  if (!userId) {
-    return errorResponseHandler(
-      "User ID is required",
-      httpStatusCode.BAD_REQUEST,
-      res
-    );
-  }
 
   // ✅ Sorting logic
   let sort: any = { createdAt: -1 };
@@ -648,14 +637,6 @@ export const getStoreAndProductsByidService = async (
 ) => {
   const { page = 1, limit = 10 } = pagination;
 
-  // ✅ Validate userId
-  if (!userId) {
-    return errorResponseHandler(
-      "User ID is required",
-      httpStatusCode.BAD_REQUEST,
-      res
-    );
-  }
 
   // ✅ Validate store
   const store = await storeModel.findById(storeId).lean();
