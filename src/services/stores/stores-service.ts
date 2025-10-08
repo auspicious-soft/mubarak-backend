@@ -4,6 +4,8 @@ import { httpStatusCode } from "../../lib/constant";
 import bcrypt from "bcryptjs";
 import { queryBuilder } from "../../utils";
 import { storeModel } from "../../models/stores/stores-schema";
+import { productReviewModel } from "../../models/review/review-schema";
+import { storeProductModel } from "../../models/store-products/store-products-schema";
 
 // Create Store
 export const createStoreService = async (payload: any, res: Response) => {
@@ -42,26 +44,98 @@ export const getAllStoresService = async (payload: any) => {
   const page = parseInt(payload.page as string) || 1;
   const limit = parseInt(payload.limit as string) || 10;
   const offset = (page - 1) * limit;
- //TODO- return Store rating,Products sold and count of Products listed
+
+  // ✅ Support search by name, ownerName, or email
   let { query, sort } = queryBuilder(payload, ["storeName", "ownerName", "email"]);
 
+  // ✅ Fetch total count
   const totalStores = await storeModel.countDocuments(query);
+
+  // ✅ Fetch stores (with pagination + sort)
   const stores = await storeModel
     .find(query)
     .sort(sort)
     .skip(offset)
     .limit(limit)
-    .select("-password");
+    .select("-password")
+    .lean();
+
+  if (stores.length === 0) {
+    return {
+      success: true,
+      message: "No stores found",
+      data: { stores: [], page, limit, total: 0 },
+    };
+  }
+
+  // ✅ Extract store IDs
+  const storeIds = stores.map((s) => s._id);
+
+  // ✅ Fetch products for all stores (to count & link reviews)
+  const storeProducts = await storeProductModel
+    .find({ storeId: { $in: storeIds } })
+    .select("_id storeId")
+    .lean();
+
+  // Build map storeId → [productIds]
+  const storeToProductsMap = new Map<string, string[]>();
+  storeProducts.forEach((p) => {
+    const key = p.storeId.toString();
+    if (!storeToProductsMap.has(key)) storeToProductsMap.set(key, []);
+    storeToProductsMap.get(key)!.push(p._id.toString());
+  });
+
+  // ✅ Fetch ratings for all products
+  const allProductIds = storeProducts.map((p) => p._id);
+  const reviewAgg = await productReviewModel.aggregate([
+    { $match: { productId: { $in: allProductIds } } },
+    {
+      $group: {
+        _id: "$productId",
+        avgRating: { $avg: "$rating" },
+      },
+    },
+  ]);
+
+  // Map productId → avgRating
+  const productRatingMap = new Map<string, number>();
+  reviewAgg.forEach((r) => productRatingMap.set(r._id.toString(), r.avgRating));
+
+  // ✅ Compute store-level average rating
+  const storeRatings = new Map<string, number>();
+  storeToProductsMap.forEach((productIds, storeId) => {
+    const ratings = productIds
+      .map((pid) => productRatingMap.get(pid))
+      .filter((r): r is number => typeof r === "number");
+    if (ratings.length > 0) {
+      const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+      storeRatings.set(storeId, avg);
+    } else {
+      storeRatings.set(storeId, 0);
+    }
+  });
+
+  // ✅ Merge all info
+  const storesWithExtraData = stores.map((store) => {
+    const productIds = storeToProductsMap.get(store._id.toString()) || [];
+    const avgRating = storeRatings.get(store._id.toString()) || 0;
+
+    return {
+      ...store,
+      listedProducts: productIds.length, // total number of listed products
+      averageRating: Number(avgRating.toFixed(1)), // average store rating
+    };
+  });
 
   return {
     success: true,
     message: "Stores retrieved successfully",
     data: {
-      stores,
+      stores: storesWithExtraData,
       page,
       limit,
-      total: totalStores
-    }
+      total: totalStores,
+    },
   };
 };
 

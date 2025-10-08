@@ -32,6 +32,13 @@ export const authMiddleware = (
   next: NextFunction
 ) => {
   try {
+    const role = req.headers.role;
+
+    // ✅ If role is "guest", skip token validation
+    if (role && role.toString().toLowerCase() === "guest") {
+      return next();
+    }
+
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -40,13 +47,13 @@ export const authMiddleware = (
 
     const token = authHeader.split(" ")[1];
 
-    // Verify token
+    // ✅ Verify token
     const decoded = jwt.verify(
       token,
       process.env.AUTH_SECRET as string
     ) as JwtPayload;
 
-    // Attach user payload to request
+    // ✅ Attach decoded user to request
     (req as any).user = decoded;
 
     next();
