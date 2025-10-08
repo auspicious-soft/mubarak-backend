@@ -65,13 +65,9 @@ export const getAllStoreProductsForAdmin = async (req: Request, res: Response) =
 // Get Store Product by ID
 export const getStoreProductById = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
-        if (!userId) {
-          return res.status(httpStatusCode.BAD_REQUEST).json({
-            success: false,
-            message: "User ID is required"
-          });
-        }
+   const role = req.headers.role?.toString().toLowerCase();
+     console.log('role:', role);
+    const userId = role === "guest" ? null  : (req as any).user?.id ;
     const response = await getStoreProductByIdService(req.params.id,userId, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {

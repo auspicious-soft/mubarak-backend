@@ -31,8 +31,9 @@ export const getAllUserProductsService = async (query: any, userId: string) => {
   };
 
   // ✅ Exclude current user's products
+  if (userId) {
   searchQuery.userId = { $ne: userId };
-
+  }
   // ✅ Handle price filtering (min/max)
   if (query.minPrice || query.maxPrice) {
     searchQuery.price = {};

@@ -377,7 +377,6 @@ export const getUserHomeService = async (
   const { page = 1, limit = 10 } = pagination;
   const { minPrice, maxPrice, description, order, orderColumn } = payload;
 
-
   const { query: baseQuery, sort } = queryBuilder(
     { description, order, orderColumn },
     ["name", "shortDescription"]
@@ -461,16 +460,20 @@ export const getUserHomeService = async (
 
   const totalPages = Math.ceil(totalProducts / limit);
 
-  // ✅ Wishlist items for user
-  const wishlistItems = await wishlistModel
-    .find({
-      userId: new Types.ObjectId(userId),
-      productType: "storeProduct",
-      productId: { $in: products.map((p) => p._id) },
-    })
-    .select("productId");
+  // ✅ Only fetch wishlist if user is authenticated
+  let wishlistProductIds = new Set<string>();
+  
+  if (userId) {
+    const wishlistItems = await wishlistModel
+      .find({
+        userId: new Types.ObjectId(userId),
+        productType: "storeProduct",
+        productId: { $in: products.map((p) => p._id) },
+      })
+      .select("productId");
 
-  const wishlistProductIds = new Set(wishlistItems.map((item) => item.productId.toString()));
+    wishlistProductIds = new Set(wishlistItems.map((item) => item.productId.toString()));
+  }
 
   // ✅ Fetch ratings in one go for all product IDs
   const productIds = products.map((p) => p._id);
@@ -494,7 +497,7 @@ export const getUserHomeService = async (
     const ratingInfo = ratingMap.get(product._id.toString()) || { averageRating: 0, totalReviews: 0 };
     return {
       ...product,
-      isWishlisted: wishlistProductIds.has(product._id.toString()),
+      isWishlisted: wishlistProductIds.has(product._id.toString()), // Will be false for guests
       averageRating: Number(ratingInfo.averageRating.toFixed(1)) || 0,
       totalReviews: ratingInfo.totalReviews || 0,
     };
@@ -633,13 +636,12 @@ export const getUserHomeStoresService = async (
 };
 
 export const getStoreAndProductsByidService = async (
-  userId: string,
+  userId: string | null,  // ✅ Allow null for guest users
   pagination: PaginationParams = {},
   storeId: string,
   res: Response
 ) => {
   const { page = 1, limit = 10 } = pagination;
-
 
   // ✅ Validate store
   const store = await storeModel.findById(storeId).lean();
@@ -661,16 +663,25 @@ export const getStoreAndProductsByidService = async (
   // ✅ Gather product IDs for review + wishlist checks
   const productIds = products.map((p) => p._id);
 
-  // ✅ Wishlist
-  const wishlist = await wishlistModel
-    .find({
-      userId: new Types.ObjectId(userId),
-      productType: "storeProduct",
-      productId: { $in: productIds },
-    })
-    .select("productId");
+  // ✅ Wishlist - only fetch if user is authenticated
+  let wishlistProductIds = new Set<string>();
+  
+  if (userId && Types.ObjectId.isValid(userId)) {
+    try {
+      const wishlist = await wishlistModel
+        .find({
+          userId: new Types.ObjectId(userId),
+          productType: "storeProduct",
+          productId: { $in: productIds },
+        })
+        .select("productId");
 
-  const wishlistProductIds = new Set(wishlist.map((w) => w.productId.toString()));
+      wishlistProductIds = new Set(wishlist.map((w) => w.productId.toString()));
+    } catch (wishlistError) {
+      console.error('Error fetching wishlist:', wishlistError);
+      // Continue without wishlist data for guests
+    }
+  }
 
   // ✅ Aggregate product reviews for these products
   const productReviewAgg = await productReviewModel.aggregate([
@@ -699,13 +710,13 @@ export const getStoreAndProductsByidService = async (
     };
     return {
       ...p,
-      isWishlisted: wishlistProductIds.has(p._id.toString()),
+      isWishlisted: wishlistProductIds.has(p._id.toString()), // Will be false for guests
       averageRating: Number(review.averageRating?.toFixed(1)) || 0,
       totalReviews: review.totalReviews,
     };
   });
 
-  // ✅ Calculate store’s overall rating
+  // ✅ Calculate store's overall rating
   // Get all productIds for this store (not only paginated ones)
   const allStoreProducts = await storeProductModel
     .find({ storeId })

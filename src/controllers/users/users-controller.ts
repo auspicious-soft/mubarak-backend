@@ -135,7 +135,9 @@ export const deleteUser = async (req: Request, res: Response) => {
 };
 export const getUserHome = async (req: Request, res: Response) => {
   try {
-     const userId = (req as any).user?.id || "";
+     const role = req.headers.role?.toString().toLowerCase();
+     console.log('role:', role);
+    const userId = role === "guest" ? null  : (req as any).user?.id ;
     const response = await getUserHomeService(userId, res,req.body,req.body);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
@@ -147,7 +149,8 @@ export const getUserHome = async (req: Request, res: Response) => {
 };
 export const getUserHomeStores = async (req: Request, res: Response) => {
   try {
-     const userId = (req as any).user?.id || "";
+     const role = req.headers.role?.toString().toLowerCase();
+    const userId = role === "guest" ? null  : (req as any).user?.id ;
     const response = await getUserHomeStoresService(userId, res,req.body,req.body);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
@@ -159,7 +162,8 @@ export const getUserHomeStores = async (req: Request, res: Response) => {
 };
 export const getStoreAndProductsByid = async (req: Request, res: Response) => {
   try {
-     const userId = (req as any).user?.id || "";
+    const role = req.headers.role?.toString().toLowerCase();
+    const userId = role === "guest" ? null  : (req as any).user?.id ;
     const response = await getStoreAndProductsByidService(userId,req.body,req.params.id, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {

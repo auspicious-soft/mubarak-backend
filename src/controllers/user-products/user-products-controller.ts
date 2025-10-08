@@ -38,14 +38,8 @@ export const createUserProduct = async (req: Request, res: Response) => {
 // Get all user products
 export const getAllUserProducts = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id || req.body.userId;
-
-    if (!userId) {
-      return res.status(httpStatusCode.UNAUTHORIZED).json({
-        success: false,
-        message: "User not authenticated"
-      });
-    }
+   const role = req.headers.role?.toString().toLowerCase();
+    const userId = role === "guest" ? null  : (req as any).user?.id ;
     const response = await getAllUserProductsService(req.body,userId);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
