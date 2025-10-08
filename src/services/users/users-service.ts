@@ -521,9 +521,7 @@ export const getUserHomeStoresService = async (
   pagination: PaginationParams = {},
   query: any = {}
 ) => {
-  const { page = 1, limit = 10 } = pagination;
-  const { sortBy } = query;
-
+  const { page = 1, limit = 10, description, sortBy } = query;
 
   // ✅ Sorting logic
   let sort: any = { createdAt: -1 };
@@ -543,15 +541,21 @@ export const getUserHomeStoresService = async (
     }
   }
 
-  // ✅ Fetch stores
+  // ✅ Build search query
+  const searchQuery: any = {};
+  if (description) {
+    searchQuery.storeName = { $regex: description, $options: "i" }; // case-insensitive search
+  }
+
+  // ✅ Fetch stores with search + pagination + sorting
   const stores = await storeModel
-    .find()
+    .find(searchQuery)
     .skip((page - 1) * limit)
     .limit(limit)
     .sort(sort)
     .lean();
 
-  const totalStores = await storeModel.countDocuments({});
+  const totalStores = await storeModel.countDocuments(searchQuery);
   const totalPages = Math.ceil(totalStores / limit);
 
   // ✅ Fetch all product IDs per store
@@ -593,9 +597,8 @@ export const getUserHomeStoresService = async (
       .map((id) => productRatingMap.get(id.toString()))
       .filter((r): r is number => typeof r === "number");
     if (ratings.length > 0) {
-      const avg =
-        ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
-      storeRatings.set(storeId, { avg: avg, count: ratings.length });
+      const avg = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
+      storeRatings.set(storeId, { avg, count: ratings.length });
     } else {
       storeRatings.set(storeId, { avg: 0, count: 0 });
     }

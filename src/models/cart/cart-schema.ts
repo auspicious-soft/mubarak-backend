@@ -49,7 +49,7 @@ cartSchema.pre('save', function(next) {
 });
 
 // Index for faster queries
-cartSchema.index({ userId: 1 });
+// cartSchema.index({ userId: 1 });
 cartSchema.index({ 'items.storeProduct': 1 });
 
 export const cartModel = mongoose.model("cart", cartSchema);
