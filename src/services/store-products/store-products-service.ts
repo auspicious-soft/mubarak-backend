@@ -6,6 +6,7 @@ import { storeProductModel } from "../../models/store-products/store-products-sc
 import { wishlistModel } from "../../models/wishlist/wishlist-schema";
 import { cartModel } from "../../models/cart/cart-schema";
 import { productReviewModel } from "../../models/review/review-schema";
+import { Types } from "mongoose";
 
 // Create Store Product
 export const createStoreProductService = async (payload: any, res: Response) => {
@@ -226,45 +227,64 @@ export const deleteStoreProductService = async (
 
 
 // Admin: Get Products by Store ID
-export const getStoreProductsByStoreIdForAdminService = async (storeId: string, payload: any,userId:string) => {
-    const page = parseInt(payload.page as string) || 1;
-    const limit = parseInt(payload.limit as string) || 10;
-    const offset = (page - 1) * limit;
+export const getStoreProductsByStoreIdForAdminService = async (
+  storeId: string, 
+  payload: any, 
+  userId: string | null  // ✅ Allow null for guest users
+) => {
+  const page = parseInt(payload.page as string) || 1;
+  const limit = parseInt(payload.limit as string) || 10;
+  const offset = (page - 1) * limit;
 
-    // Create query with storeId filter
-    let { query: searchQuery, sort } = queryBuilder(payload, ["name", "shortDescription"]);
-    
-    // Combine with storeId
-    const query = { storeId, ...(Object.keys(searchQuery).length > 0 ? searchQuery : {}) };
+  // Create query with storeId filter
+  let { query: searchQuery, sort } = queryBuilder(payload, ["name", "shortDescription"]);
+  
+  // Combine with storeId
+  const query = { storeId, ...(Object.keys(searchQuery).length > 0 ? searchQuery : {}) };
 
-    const totalProducts = await storeProductModel.countDocuments(query);
-    let products = await storeProductModel
-      .find(query)
-      .sort(sort)
-      .skip(offset)
-      .limit(limit)
-      .populate('storeId')
-      .lean();
+  const totalProducts = await storeProductModel.countDocuments(query);
+  let products = await storeProductModel
+    .find(query)
+    .sort(sort)
+    .skip(offset)
+    .limit(limit)
+    .populate('storeId')
+    .lean();
 
-      const wishlist = await wishlistModel.find({ userId, productType: "storeProduct", productId: { $in: products.map(p => p._id) } }).lean();
+  // ✅ Only fetch wishlist if user is authenticated
+  let wishlistSet = new Set<string>();
+  
+  if (userId && Types.ObjectId.isValid(userId)) {
+    try {
+      const wishlist = await wishlistModel.find({ 
+        userId: new Types.ObjectId(userId), 
+        productType: "storeProduct", 
+        productId: { $in: products.map(p => p._id) } 
+      }).lean();
 
-      const wishlistSet = new Set(wishlist.map(w => w.productId.toString()));        
-      
-      products = products.map(product => ({
-        ...product,
-        isWishlisted: wishlistSet.has(product._id.toString())
-      }));
+      wishlistSet = new Set(wishlist.map(w => w.productId.toString()));
+    } catch (wishlistError) {
+      console.error('Error fetching wishlist:', wishlistError);
+      // Continue without wishlist data for guests
+    }
+  }
+  
+  // ✅ Map products with wishlist status
+  products = products.map(product => ({
+    ...product,
+    isWishlisted: wishlistSet.has(product._id.toString())  // Will be false for guests
+  }));
 
-    return {
-      success: true,
-      message: "Store products retrieved successfully",
-      data: {
-        products,
-        page,
-        limit,
-        total: totalProducts
-      }
-    };
+  return {
+    success: true,
+    message: "Store products retrieved successfully",
+    data: {
+      products,
+      page,
+      limit,
+      total: totalProducts
+    }
+  };
 };
 export const getAllStoreProductsForAdminService = async (payload: any) => {
   const page = Number(payload.page) > 0 ? Number(payload.page) : 1;
