@@ -8,7 +8,8 @@ import {
   getUserProductByIdService,
   updateUserProductService,
   deleteUserProductService,
-  updateUserProductStatusService
+  updateUserProductStatusService,
+  getAllUserProductsForAdminService
 } from "../../services/user-products/user-products-service";
 
 // Create a new user product
@@ -46,6 +47,17 @@ export const getAllUserProducts = async (req: Request, res: Response) => {
       });
     }
     const response = await getAllUserProductsService(req.body,userId);
+    return res.status(httpStatusCode.OK).json(response);
+  } catch (error: any) {
+    const { code, message } = errorParser(error);
+    return res
+      .status(code || httpStatusCode.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: message || "An error occurred" });
+  }
+};
+export const getAllUserProductsForAdmin = async (req: Request, res: Response) => {
+  try {
+    const response = await getAllUserProductsForAdminService(req.query);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);
@@ -160,6 +172,20 @@ export const updateUserProductStatus = async (req: Request, res: Response) => {
     }
 
     const response = await updateUserProductStatusService(req.params.id, status, userId, res);
+    return res.status(httpStatusCode.OK).json(response);
+  } catch (error: any) {
+    const { code, message } = errorParser(error);
+    return res
+      .status(code || httpStatusCode.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: message || "An error occurred" });
+  }
+};
+
+export const getUserProductsByUserIdForAdmin = async (req: Request, res: Response) => {
+  console.log('req:', req);
+  try {
+    const userId = req.params.userId;
+    const response = await getUserProductsByUserIdService(userId, req.query);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);

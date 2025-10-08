@@ -72,9 +72,9 @@ router
   .put(authMiddleware, updateUserProduct)
   .delete(authMiddleware, deleteUserProduct);
 
-router.get("/home/data", authMiddleware, getUserHome);
-router.get("/home/stores", authMiddleware, getUserHomeStores);
-router.get("/home/stores/:id", authMiddleware, getStoreAndProductsByid);
+router.post("/home/data", authMiddleware, getUserHome);
+router.post("/home/stores", authMiddleware, getUserHomeStores);
+router.post("/home/stores/:id", authMiddleware, getStoreAndProductsByid);
 router.get("/store/product/:id", authMiddleware, getStoreProductById);
 router.get("/store/:storeId/products",authMiddleware, getStoreProductsByStoreIdForAdmin);
 

@@ -5,6 +5,7 @@ import { queryBuilder } from "../../utils";
 import { storeProductModel } from "../../models/store-products/store-products-schema";
 import { wishlistModel } from "../../models/wishlist/wishlist-schema";
 import { cartModel } from "../../models/cart/cart-schema";
+import { productReviewModel } from "../../models/review/review-schema";
 
 // Create Store Product
 export const createStoreProductService = async (payload: any, res: Response) => {
@@ -192,6 +193,7 @@ export const updateStoreProductService = async (id: string, payload: any, res: R
 export const deleteStoreProductService = async (
   id: string,
   storeId: string,
+  role:string,
   res: Response
 ) => {
     const product = await storeProductModel.findById(id).lean();
@@ -204,6 +206,7 @@ export const deleteStoreProductService = async (
     }
 
     // Check store ownership
+    if(role !=="admin" ) {
     if (product.storeId.toString() !== storeId.toString()) {
       return errorResponseHandler(
         "You are not authorized to delete this product",
@@ -211,6 +214,7 @@ export const deleteStoreProductService = async (
         res
       );
     }
+  }
 
     await storeProductModel.findByIdAndDelete(id);
 
@@ -261,4 +265,74 @@ export const getStoreProductsByStoreIdForAdminService = async (storeId: string, 
         total: totalProducts
       }
     };
+};
+export const getAllStoreProductsForAdminService = async (payload: any) => {
+  const page = Number(payload.page) > 0 ? Number(payload.page) : 1;
+  const limit = Number(payload.limit) > 0 ? Number(payload.limit) : 10;
+  const offset = (page - 1) * limit;
+
+  // Base query
+  const baseQuery: any = {};
+
+  // Build search and sort
+  const { query: searchQuery, sort } = queryBuilder(payload, [
+    "name",
+    "shortDescription",
+  ]);
+
+  // Merge base + search
+  const query = { ...baseQuery, ...searchQuery };
+
+  const totalProducts = await storeProductModel.countDocuments(query);
+
+  // Fetch paginated products
+  const products = await storeProductModel
+    .find(query)
+    .sort(sort)
+    .skip(offset)
+    .limit(limit)
+    .populate("storeId", "storeName")
+    .lean();
+
+  // Extract product IDs
+  const productIds = products.map((p) => p._id);
+
+  // Aggregate average ratings for these products
+  const ratings = await productReviewModel.aggregate([
+    { $match: { productId: { $in: productIds } } },
+    {
+      $group: {
+        _id: "$productId",
+        averageRating: { $avg: "$rating" },
+        totalReviews: { $sum: 1 },
+      },
+    },
+  ]);
+
+  // Map ratings by productId for quick lookup
+  const ratingMap = ratings.reduce((acc, r) => {
+    acc[r._id.toString()] = {
+      averageRating: Number(r.averageRating.toFixed(1)),
+      totalReviews: r.totalReviews,
+    };
+    return acc;
+  }, {} as Record<string, { averageRating: number; totalReviews: number }>);
+
+  // Attach average rating to each product
+  const productsWithRatings = products.map((p) => ({
+    ...p,
+    averageRating: ratingMap[p._id.toString()]?.averageRating || 0,
+    totalReviews: ratingMap[p._id.toString()]?.totalReviews || 0,
+  }));
+
+  return {
+    success: true,
+    message: "Store products retrieved successfully",
+    data: {
+      products: productsWithRatings,
+      page,
+      limit,
+      total: totalProducts,
+    },
+  };
 };

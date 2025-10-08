@@ -232,3 +232,35 @@ export const updateUserProductStatusService = async (productId: string, status: 
     data: updatedProduct
   };
 };
+export const getAllUserProductsForAdminService = async (query: any) => {
+  const page = parseInt(query.page as string) || 1;
+  const limit = parseInt(query.limit as string) || 10;
+  const offset = (page - 1) * limit;
+
+  let { query: searchQuery, sort } = queryBuilder(query, ["productName"]) as { 
+    query: { [key: string]: any; price?: { $gte?: number; $lte?: number } }, 
+    sort: any 
+  };
+
+
+  // ✅ Get total + paginated products
+  const totalProducts = await userProductModel.countDocuments(searchQuery);
+  const products = await userProductModel
+    .find(searchQuery)
+    .sort(sort)
+    .collation({ locale: "en", strength: 2 })
+    .skip(offset)
+    .limit(limit)
+    .populate("userId");
+
+  return {
+    success: true,
+    message: "Products retrieved successfully",
+    data: {
+      products,
+      page,
+      limit,
+      total: totalProducts,
+    },
+  };
+};

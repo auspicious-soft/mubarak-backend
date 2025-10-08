@@ -7,7 +7,8 @@ import {
   getStoreProductByIdService,
   updateStoreProductService,
   deleteStoreProductService,
-  getStoreProductsByStoreIdForAdminService
+  getStoreProductsByStoreIdForAdminService,
+  getAllStoreProductsForAdminService
 } from "../../services/store-products/store-products-service";
 
 // Create Store Product
@@ -34,6 +35,24 @@ export const getAllStoreProducts = async (req: Request, res: Response) => {
           });
         }
     const response = await getAllStoreProductsService(userId,req.query);
+    return res.status(httpStatusCode.OK).json(response);
+  } catch (error: any) {
+    const { code, message } = errorParser(error);
+    return res
+      .status(code || httpStatusCode.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: message || "An error occurred" });
+  }
+};
+export const getAllStoreProductsForAdmin = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+        if (!userId) {
+          return res.status(httpStatusCode.BAD_REQUEST).json({
+            success: false,
+            message: "User ID is required"
+          });
+        }
+    const response = await getAllStoreProductsForAdminService(req.query);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);
@@ -86,7 +105,9 @@ export const deleteStoreProduct = async (req: Request, res: Response) => {
             message: "User ID is required"
           });
         }
-    const response = await deleteStoreProductService(req.params.id,userId, res);
+        const role = (req as any).user?.role;
+        console.log('role:', role);
+    const response = await deleteStoreProductService(req.params.id,userId,role, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);

@@ -7,7 +7,8 @@ import {
   getStoreProductById,
   updateStoreProduct,
   deleteStoreProduct,
-  getStoreProductsByStoreIdForAdmin
+  getStoreProductsByStoreIdForAdmin,
+  getAllStoreProductsForAdmin
 } from "../controllers/store-products/store-products-controller";
 import {
   createPromotion,
@@ -17,7 +18,7 @@ import {
   deletePromotion
 } from "../controllers/promotion/promotion-controller";
 import { getAllUsers, getUserById } from "../controllers/users/users-controller";
-import { deleteUserProduct, getUserProductById, getUserProductsByUserId, updateUserProduct } from "../controllers/user-products/user-products-controller";
+import { deleteUserProduct, getAllUserProducts, getAllUserProductsForAdmin, getUserProductById, getUserProductsByUserId, getUserProductsByUserIdForAdmin, updateUserProduct } from "../controllers/user-products/user-products-controller";
 import { checkWebAuth } from "../middleware/check-auth";
 
 const router = Router();
@@ -29,10 +30,12 @@ router.get("/admin-detail",getAdminDetailsById)
 //users routes
 router.route("/users").get(getAllUsers);
 router.route("/users/:id").get(getUserById);
-router.get("/user/:userId/products", getUserProductsByUserId);
+router.get("/user/:userId/products", getUserProductsByUserIdForAdmin);
 router.route("/user-products/:id")
   .get(getUserProductById)
   .delete(deleteUserProduct);
+
+router.get("/user/products",getAllUserProductsForAdmin);  
 
 //stores routes
 router.route("/stores").post(createStore).get(getAllStores);
@@ -42,7 +45,7 @@ router.route("/stores/:id").get(getStoreById).put(updateStore).delete(deleteStor
 router.get("/stores/:storeId/products", getStoreProductsByStoreIdForAdmin);
 
 //store-products routes
-router.route("/store-products").get(getAllStoreProducts);
+router.route("/store-products").get(getAllStoreProductsForAdmin);
 router.route("/store-products/:id").get(getStoreProductById).delete(deleteStoreProduct);
 
 //promotions routes
