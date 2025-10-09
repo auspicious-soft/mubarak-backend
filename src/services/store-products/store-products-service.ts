@@ -356,3 +356,33 @@ export const getAllStoreProductsForAdminService = async (payload: any) => {
     },
   };
 };
+
+export const getStoreProductByIdForAdminService = async (
+  id: string,
+  userId: string,
+  res: Response
+) => {
+  const product = await storeProductModel
+    .findById(id)
+    .populate("storeId")
+    .lean();
+
+  if (!product) {
+    return errorResponseHandler(
+      "Store product not found",
+      httpStatusCode.NOT_FOUND,
+      res
+    );
+  }
+  const reviews = await productReviewModel.find({ productId: id }).populate("userId", "-phoneNumber").lean();
+
+
+  return {
+    success: true,
+    message: "Store product retrieved successfully",
+    data: {
+      product,
+      reviews
+    },
+  };
+};

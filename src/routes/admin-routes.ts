@@ -8,7 +8,8 @@ import {
   updateStoreProduct,
   deleteStoreProduct,
   getStoreProductsByStoreIdForAdmin,
-  getAllStoreProductsForAdmin
+  getAllStoreProductsForAdmin,
+  getStoreProductByIdForAdmin
 } from "../controllers/store-products/store-products-controller";
 import {
   createPromotion,
@@ -46,7 +47,7 @@ router.get("/stores/:storeId/products", getStoreProductsByStoreIdForAdmin);
 
 //store-products routes
 router.route("/store-products").get(getAllStoreProductsForAdmin);
-router.route("/store-products/:id").get(getStoreProductById).delete(deleteStoreProduct);
+router.route("/store-products/:id").get(getStoreProductByIdForAdmin).delete(deleteStoreProduct);
 
 //promotions routes
 router.route("/promotions").post(createPromotion).get(getAllPromotions);

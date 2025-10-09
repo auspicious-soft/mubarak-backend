@@ -18,6 +18,7 @@ import { storeModel } from "../../models/stores/stores-schema";
 import { wishlistModel } from "../../models/wishlist/wishlist-schema";
 import { Types } from "mongoose";
 import { productReviewModel } from "../../models/review/review-schema";
+import { promotionsModel } from "../../models/promotion/promotion-schema";
 interface PaginationParams {
   page?: number;
   limit?: number;
@@ -460,9 +461,8 @@ export const getUserHomeService = async (
 
   const totalPages = Math.ceil(totalProducts / limit);
 
-  // ✅ Only fetch wishlist if user is authenticated
+  // ✅ Fetch wishlist if authenticated
   let wishlistProductIds = new Set<string>();
-  
   if (userId) {
     const wishlistItems = await wishlistModel
       .find({
@@ -475,7 +475,7 @@ export const getUserHomeService = async (
     wishlistProductIds = new Set(wishlistItems.map((item) => item.productId.toString()));
   }
 
-  // ✅ Fetch ratings in one go for all product IDs
+  // ✅ Fetch ratings for all product IDs
   const productIds = products.map((p) => p._id);
   const ratingData = await productReviewModel.aggregate([
     { $match: { productId: { $in: productIds } } },
@@ -497,17 +497,25 @@ export const getUserHomeService = async (
     const ratingInfo = ratingMap.get(product._id.toString()) || { averageRating: 0, totalReviews: 0 };
     return {
       ...product,
-      isWishlisted: wishlistProductIds.has(product._id.toString()), // Will be false for guests
+      isWishlisted: wishlistProductIds.has(product._id.toString()),
       averageRating: Number(ratingInfo.averageRating.toFixed(1)) || 0,
       totalReviews: ratingInfo.totalReviews || 0,
     };
   });
 
+  // ✅ Fetch latest promotions
+  const promotions = await promotionsModel
+    .find({})
+    .sort({ createdAt: -1 })
+    .populate("storeName", "-password")
+    .lean();
+
   return {
     success: true,
-    message: "Products fetched successfully",
+    message: "Home data fetched successfully",
     data: {
       products: productsWithExtras,
+      promotions, // ✅ include promotions here
       pagination: {
         totalProducts,
         totalPages,

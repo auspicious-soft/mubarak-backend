@@ -18,7 +18,6 @@ router.route("/profile-detail").get(getStoreProfileByToken).put(updateStoreByTok
 
 // router.get("/dashboard", getDashboardStats);
 
-
 //store-products routes
 router.route("/store-products").post(createStoreProduct).get(getAllStoreProducts);
 router.route("/store-products/:id").get(getStoreProductById).put(updateStoreProduct).delete(deleteStoreProduct);

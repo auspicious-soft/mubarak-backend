@@ -8,7 +8,8 @@ import {
   updateStoreProductService,
   deleteStoreProductService,
   getStoreProductsByStoreIdForAdminService,
-  getAllStoreProductsForAdminService
+  getAllStoreProductsForAdminService,
+  getStoreProductByIdForAdminService
 } from "../../services/store-products/store-products-service";
 
 // Create Store Product
@@ -128,6 +129,25 @@ export const getStoreProductsByStoreIdForAdmin = async (req: Request, res: Respo
      console.log('role:', role);
     const userId = role === "guest" ? null  : (req as any).user?.id ;
     const response = await getStoreProductsByStoreIdForAdminService(storeId, req.query,userId);
+    return res.status(httpStatusCode.OK).json(response);
+  } catch (error: any) {
+    const { code, message } = errorParser(error);
+    return res
+      .status(code || httpStatusCode.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: message || "An error occurred" });
+  }
+};
+
+export const getStoreProductByIdForAdmin = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+          return res.status(httpStatusCode.BAD_REQUEST).json({
+            success: false,
+            message: "User ID is required"
+          });
+        }
+    const response = await getStoreProductByIdForAdminService(req.params.id,userId, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);

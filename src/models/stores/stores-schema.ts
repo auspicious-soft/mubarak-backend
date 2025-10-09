@@ -43,6 +43,7 @@ const storeSchema = new mongoose.Schema({
     profilePic: {
       type: String,
     },
+    discount: { type: Number, default: 0 },
     address: { type: String },
   },
   { timestamps: true }
