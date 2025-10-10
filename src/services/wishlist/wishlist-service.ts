@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { storeProductModel } from "../../models/store-products/store-products-schema";
 import { userProductModel } from "../../models/user-products/user-products-schema";
 import { wishlistModel } from "../../models/wishlist/wishlist-schema";
@@ -50,17 +50,28 @@ export const toggleWishlistService = async (
 };
 
 export const getUserWishlistService = async (userId: string) => {
-  return wishlistModel
-    .find({ userId: new Types.ObjectId(userId) })
-    .populate({
-      path: "productId",
-      populate: {
-        path: "storeId", // nested populate inside productId
-        model: "store",  // explicitly point to store model
-      },
-    })// dynamic refPath is used automatically
-    .lean() // optional, returns plain objects instead of Mongoose docs
-    .exec();
+  const wishlist = await wishlistModel
+    .find({ userId: new mongoose.Types.ObjectId(userId) })
+    .lean();
+
+  // Split by product type
+  const storeProductsWishlist = wishlist.filter(w => w.productType === "storeProduct");
+  const userProductsWishlist = wishlist.filter(w => w.productType === "userProduct");
+
+  // Populate storeId only for storeProduct
+  const populatedStoreProducts = await wishlistModel.populate(storeProductsWishlist, {
+    path: "productId",
+    populate: { path: "storeId", model: "store" },
+  });
+
+  // Populate productId for userProduct only
+  const populatedUserProducts = await wishlistModel.populate(userProductsWishlist, {
+    path: "productId",
+    populate: { path: "userId", model: "user" },
+  });
+
+  // Combine both types back into a single array
+  return [...populatedStoreProducts, ...populatedUserProducts];
 };
 
 export const removeFromWishlistService = async (userId: string, productId: string, productType: "storeProduct" | "userProduct") => {
