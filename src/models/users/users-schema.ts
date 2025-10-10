@@ -54,6 +54,9 @@ const userSchema = new mongoose.Schema({
       type:Boolean,
       default:false
     },
+    fcmToken:[
+      { type:String }
+    ],
     street: { type: String },
     city: { type: String },
     country: { type: String },

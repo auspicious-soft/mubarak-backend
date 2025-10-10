@@ -87,7 +87,9 @@ export const getUserProductsByUserId = async (req: Request, res: Response) => {
 // Get product by ID
 export const getUserProductById = async (req: Request, res: Response) => {
   try {
-    const response = await getUserProductByIdService(req.params.id, res);
+     const role = req.headers.role?.toString().toLowerCase();
+    const userId = role === "guest" ? null  : (req as any).user?.id ;
+    const response = await getUserProductByIdService(req.params.id,userId, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);

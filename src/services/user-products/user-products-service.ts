@@ -3,6 +3,8 @@ import { errorResponseHandler } from "../../lib/errors/error-response-handler";
 import { httpStatusCode } from "../../lib/constant";
 import { queryBuilder } from "../../utils";
 import { userProductModel } from "../../models/user-products/user-products-schema";
+import { wishlistModel } from "../../models/wishlist/wishlist-schema";
+import mongoose from "mongoose";
 
 // Create a new user product
 export const createUserProductService = async (payload: any, userId: string, res: Response) => {
@@ -30,48 +32,44 @@ export const getAllUserProductsService = async (query: any, userId: string) => {
     sort: any 
   };
 
-  // ✅ Exclude current user's products
+  // Exclude current user's products
   if (userId) {
-  searchQuery.userId = { $ne: userId };
-  }
-  // ✅ Handle price filtering (min/max)
-  if (query.minPrice || query.maxPrice) {
-    searchQuery.price = {};
-    if (query.minPrice) {
-      searchQuery.price.$gte = parseFloat(query.minPrice as string);
-    }
-    if (query.maxPrice) {
-      searchQuery.price.$lte = parseFloat(query.maxPrice as string);
-    }
+    searchQuery.userId = { $ne: userId };
   }
 
-  // ✅ Handle sorting
+  // Handle price filtering
+  if (query.minPrice || query.maxPrice) {
+    searchQuery.price = {};
+    if (query.minPrice) searchQuery.price.$gte = parseFloat(query.minPrice as string);
+    if (query.maxPrice) searchQuery.price.$lte = parseFloat(query.maxPrice as string);
+  }
+
+  // Handle sorting
   if (query.sortBy) {
     switch (query.sortBy) {
-      case "latest": // Newest first
+      case "latest":
         sort = { createdAt: -1 };
         break;
-      case "priceLowToHigh": // Price ascending
+      case "priceLowToHigh":
         sort = { price: 1 };
         break;
-      case "priceHighToLow": // Price descending
+      case "priceHighToLow":
         sort = { price: -1 };
         break;
-      case "alphaAsc": // Alphabetical A → Z
-        sort = { productName:1 };
+      case "alphaAsc":
+        sort = { productName: 1 };
         break;
-      case "alphaDesc": // Alphabetical Z → A
+      case "alphaDesc":
         sort = { productName: -1 };
         break;
       default:
-        sort = { createdAt: -1 }; // fallback to latest
+        sort = { createdAt: -1 };
     }
   } else {
-    // fallback: use queryBuilder’s sort or default latest
     sort = Object.keys(sort).length > 0 ? sort : { createdAt: -1 };
   }
 
-  // ✅ Get total + paginated products
+  // Get total + paginated products
   const totalProducts = await userProductModel.countDocuments(searchQuery);
   const products = await userProductModel
     .find(searchQuery)
@@ -81,11 +79,28 @@ export const getAllUserProductsService = async (query: any, userId: string) => {
     .limit(limit)
     .populate("userId");
 
+  // Fetch wishlist for current user
+  let whitelistedProductIds: mongoose.Types.ObjectId[] = [];
+  if (userId) {
+    const wishlist = await wishlistModel.find({
+      userId,
+      productType: "userProduct",
+      productId: { $in: products.map((p) => p._id) },
+    });
+    whitelistedProductIds = wishlist.map((w) => w.productId);
+  }
+
+  // Add isWhitelisted key
+  const productsWithWishlist = products.map((p) => ({
+    ...p.toObject(),
+    isWhitelisted: whitelistedProductIds.some((id) => id.equals(p._id)),
+  }));
+
   return {
     success: true,
     message: "Products retrieved successfully",
     data: {
-      products,
+      products: productsWithWishlist,
       page,
       limit,
       total: totalProducts,
@@ -156,17 +171,56 @@ export const getUserProductsByUserIdService = async ( userId: string, payload: a
 };
 
 // Get product by ID
-export const getUserProductByIdService = async (productId: string, res: Response) => {
+export const getUserProductByIdService = async (productId: string, currentUserId: string, res: Response) => {
   const product = await userProductModel.findById(productId).populate("userId");
 
   if (!product) {
     return errorResponseHandler("Product not found", httpStatusCode.NOT_FOUND, res);
   }
 
+  // ✅ Check if current logged-in user has whitelisted this product
+  let isWhitelisted = false;
+  if (currentUserId) {
+    const wishlistEntry = await wishlistModel.findOne({
+      userId: currentUserId,
+      productType: "userProduct",
+      productId: product._id,
+    });
+    isWhitelisted = !!wishlistEntry;
+  }
+
+  // ✅ Fetch related products added by the same owner (exclude current product)
+  const relatedProducts = await userProductModel
+    .find({
+      userId: product.userId._id,
+      _id: { $ne: product._id },
+    })
+    .limit(10);
+
+  // ✅ Check wishlist status for related products for current logged-in user
+  let whitelistedRelatedIds: mongoose.Types.ObjectId[] = [];
+  if (currentUserId && relatedProducts.length > 0) {
+    const relatedWishlist = await wishlistModel.find({
+      userId: currentUserId,
+      productType: "userProduct",
+      productId: { $in: relatedProducts.map((p) => p._id) },
+    });
+    whitelistedRelatedIds = relatedWishlist.map((w) => w.productId);
+  }
+
+  const relatedProductsWithWishlist = relatedProducts.map((p) => ({
+    ...p.toObject(),
+    isWhitelisted: whitelistedRelatedIds.some((id) => id.equals(p._id)),
+  }));
+
   return {
     success: true,
     message: "Product retrieved successfully",
-    data: product
+    data: {
+      ...product.toObject(),
+      isWhitelisted,
+      relatedProducts: relatedProductsWithWishlist,
+    },
   };
 };
 
