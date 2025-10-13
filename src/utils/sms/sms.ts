@@ -67,3 +67,13 @@ export const generateOtpWithTwilio = async (phoneNumber: string, otp: string) =>
     };
   }
 };
+
+export const sendSMS = async (to: string, body: string) => {
+   console.log(`WhatsApp to ${to}: Your OTP is: ${body}`);
+
+  // return twilioClient.messages.create({
+  //   body,
+  //   from: process.env.TWILIO_PHONE_NUMBER as string,
+  //   to,
+  // });
+};

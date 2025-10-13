@@ -21,6 +21,7 @@ import {
 import { getAllUsers, getUserById } from "../controllers/users/users-controller";
 import { deleteUserProduct, getAllUserProducts, getAllUserProductsForAdmin, getUserProductById, getUserProductsByUserId, getUserProductsByUserIdForAdmin, updateUserProduct } from "../controllers/user-products/user-products-controller";
 import { checkWebAuth } from "../middleware/check-auth";
+import { sendNotification } from "../controllers/notification/notification-controller";
 
 const router = Router();
 
@@ -52,5 +53,8 @@ router.route("/store-products/:id").get(getStoreProductByIdForAdmin).delete(dele
 //promotions routes
 router.route("/promotions").post(createPromotion).get(getAllPromotions);
 router.route("/promotions/:id").get(getPromotionById).put(updatePromotion).delete(deletePromotion);
+
+// Notification&Announcements
+router.route("/notification").post(sendNotification);
 
 export { router };

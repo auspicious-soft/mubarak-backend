@@ -16,7 +16,7 @@ import { generatePasswordResetTokenByPhoneWithTwilio } from "../../utils/sms/sms
 import { storeProductModel } from "../../models/store-products/store-products-schema";
 import { storeModel } from "../../models/stores/stores-schema";
 import { wishlistModel } from "../../models/wishlist/wishlist-schema";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { productReviewModel } from "../../models/review/review-schema";
 import { promotionsModel } from "../../models/promotion/promotion-schema";
 interface PaginationParams {
@@ -159,7 +159,7 @@ export const loginUserService = async (payload: any, res: Response) => {
 
 // Verify OTP
 export const verifyOtpService = async (payload: any, res: Response) => {
-  const { phoneNumber, otp } = payload;
+  const { phoneNumber, otp, fcmToken } = payload; // frontend sends fcmToken here
 
   if (!phoneNumber) {
     return errorResponseHandler(
@@ -169,20 +169,18 @@ export const verifyOtpService = async (payload: any, res: Response) => {
     );
   }
 
-  // Find token
+  // Find OTP token
   const existingToken = await getPasswordResetTokenByToken(otp);
-
   if (!existingToken) {
     return errorResponseHandler("Invalid OTP", httpStatusCode.BAD_REQUEST, res);
   }
 
-  // Check if token is expired
-  const hasExpired = new Date(existingToken.expires) < new Date();
-  if (hasExpired) {
+  // Check expiration
+  if (new Date(existingToken.expires) < new Date()) {
     return errorResponseHandler("OTP expired", httpStatusCode.BAD_REQUEST, res);
   }
 
-  // Check if token belongs to the user
+  // Check ownership
   if (existingToken.phoneNumber !== phoneNumber) {
     return errorResponseHandler(
       "Invalid OTP for this phone number",
@@ -191,12 +189,15 @@ export const verifyOtpService = async (payload: any, res: Response) => {
     );
   }
 
-  // Update user verification status
-  const user = await usersModel.findOneAndUpdate(
-    { phoneNumber },
-    { isVerified: true },
-    { new: true }
-  );
+  // Update user: mark verified AND add/update fcmToken
+  const update: any = { isVerified: true };
+  if (fcmToken) {
+    update.$addToSet = { fcmToken }; // ✅ adds to array if not already present
+  }
+
+  const user = await usersModel.findOneAndUpdate({ phoneNumber }, update, {
+    new: true,
+  });
 
   if (!user) {
     return errorResponseHandler(
@@ -206,7 +207,7 @@ export const verifyOtpService = async (payload: any, res: Response) => {
     );
   }
 
-  // Delete the used token
+  // Delete used OTP
   await passwordResetTokenModel.findByIdAndDelete(existingToken._id);
 
   // Generate JWT token
@@ -275,7 +276,7 @@ export const getAllUsersService = async (payload: any) => {
   const totalUsers = await usersModel.countDocuments(query);
   const users = await usersModel
     .find(query)
-    .sort(sort)
+    .sort({ createdAt: -1 })
     .skip(offset)
     .limit(limit)
     .select("-password");
@@ -472,7 +473,9 @@ export const getUserHomeService = async (
       })
       .select("productId");
 
-    wishlistProductIds = new Set(wishlistItems.map((item) => item.productId.toString()));
+    wishlistProductIds = new Set(
+      wishlistItems.map((item) => item.productId.toString())
+    );
   }
 
   // ✅ Fetch ratings for all product IDs
@@ -489,12 +492,18 @@ export const getUserHomeService = async (
   ]);
 
   const ratingMap = new Map(
-    ratingData.map((r) => [r._id.toString(), { averageRating: r.averageRating, totalReviews: r.totalReviews }])
+    ratingData.map((r) => [
+      r._id.toString(),
+      { averageRating: r.averageRating, totalReviews: r.totalReviews },
+    ])
   );
 
   // ✅ Merge wishlist + rating info
   const productsWithExtras = products.map((product) => {
-    const ratingInfo = ratingMap.get(product._id.toString()) || { averageRating: 0, totalReviews: 0 };
+    const ratingInfo = ratingMap.get(product._id.toString()) || {
+      averageRating: 0,
+      totalReviews: 0,
+    };
     return {
       ...product,
       isWishlisted: wishlistProductIds.has(product._id.toString()),
@@ -644,12 +653,12 @@ export const getUserHomeStoresService = async (
 };
 
 export const getStoreAndProductsByidService = async (
-  userId: string | null,  // ✅ Allow null for guest users
-  pagination: PaginationParams = {},
+  userId: string | null,
+  pagination: any,
   storeId: string,
   res: Response
 ) => {
-  const { page = 1, limit = 10 } = pagination;
+  const { page = 1, limit = 10, sortBy, minPrice, maxPrice } = pagination;
 
   // ✅ Validate store
   const store = await storeModel.findById(storeId).lean();
@@ -657,23 +666,88 @@ export const getStoreAndProductsByidService = async (
     return errorResponseHandler("Store not found", httpStatusCode.NOT_FOUND, res);
   }
 
-  // ✅ Fetch paginated products for this store
-  const products = await storeProductModel
-    .find({ storeId })
-    .skip((page - 1) * limit)
-    .limit(limit)
-    .sort({ createdAt: -1 })
-    .lean();
+  // ✅ Base query
+  const query: any = { storeId: new mongoose.Types.ObjectId(storeId) };
 
-  const totalProducts = await storeProductModel.countDocuments({ storeId });
+  // ✅ Filter by min/max price (nested field in priceDetails array)
+  if (minPrice != null || maxPrice != null) {
+    const priceFilter: any = {};
+    if (minPrice != null) priceFilter.$gte = Number(minPrice);
+    if (maxPrice != null) priceFilter.$lte = Number(maxPrice);
+
+    query["priceDetails.price"] = priceFilter;
+  }
+
+  // ✅ Sort logic
+  let sortQuery: any = { createdAt: -1 }; // default: latest
+
+  switch (sortBy) {
+    case "mostPopular":
+      sortQuery = { totalSold: -1 }; // assuming you track this
+      break;
+    case "latest":
+      sortQuery = { createdAt: -1 };
+      break;
+    case "priceLowToHigh":
+      sortQuery = { "priceDetails.price": 1 };
+      break;
+    case "priceHighToLow":
+      sortQuery = { "priceDetails.price": -1 };
+      break;
+    case "alphaAsc":
+      sortQuery = { name: 1 };
+      break;
+    case "alphaDesc":
+      sortQuery = { name: -1 };
+      break;
+  }
+
+  let products: any[] = [];
+
+  // ✅ Handle bestRated separately (needs aggregation)
+  if (sortBy === "bestRated") {
+    const ratingAgg = await productReviewModel.aggregate([
+      { $match: { storeId: new mongoose.Types.ObjectId(storeId) } },
+      {
+        $group: {
+          _id: "$productId",
+          averageRating: { $avg: "$rating" },
+        },
+      },
+    ]);
+
+    const ratingMap = new Map(ratingAgg.map((r) => [r._id.toString(), r.averageRating]));
+
+    products = await storeProductModel.find(query).lean();
+
+    products = products.map((p) => ({
+      ...p,
+      averageRating: ratingMap.get(p._id.toString()) || 0,
+    }));
+
+    products.sort((a, b) => b.averageRating - a.averageRating);
+
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    products = products.slice(start, end);
+  } else {
+    // ✅ Sort directly in MongoDB
+    products = await storeProductModel
+      .find(query)
+      .sort(sortQuery)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
+  }
+
+  const totalProducts = await storeProductModel.countDocuments(query);
   const totalPages = Math.ceil(totalProducts / limit);
 
-  // ✅ Gather product IDs for review + wishlist checks
+  // ✅ Collect productIds
   const productIds = products.map((p) => p._id);
 
-  // ✅ Wishlist - only fetch if user is authenticated
+  // ✅ Wishlist (only for logged-in users)
   let wishlistProductIds = new Set<string>();
-  
   if (userId && Types.ObjectId.isValid(userId)) {
     try {
       const wishlist = await wishlistModel
@@ -683,15 +757,13 @@ export const getStoreAndProductsByidService = async (
           productId: { $in: productIds },
         })
         .select("productId");
-
       wishlistProductIds = new Set(wishlist.map((w) => w.productId.toString()));
-    } catch (wishlistError) {
-      console.error('Error fetching wishlist:', wishlistError);
-      // Continue without wishlist data for guests
+    } catch (err) {
+      console.error("Error fetching wishlist:", err);
     }
   }
 
-  // ✅ Aggregate product reviews for these products
+  // ✅ Aggregate product reviews
   const productReviewAgg = await productReviewModel.aggregate([
     { $match: { productId: { $in: productIds } } },
     {
@@ -710,29 +782,29 @@ export const getStoreAndProductsByidService = async (
     ])
   );
 
-  // ✅ Merge wishlist + review data into products
+  // ✅ Merge wishlist + reviews
   const productsWithData = products.map((p) => {
     const review = productReviewMap.get(p._id.toString()) || {
       averageRating: 0,
       totalReviews: 0,
     };
+    const allPrices = p.priceDetails?.map((d: any) => d.price) || [];
+    const minProductPrice = Math.min(...allPrices);
+    const maxProductPrice = Math.max(...allPrices);
+
     return {
       ...p,
-      isWishlisted: wishlistProductIds.has(p._id.toString()), // Will be false for guests
+      minProductPrice: isFinite(minProductPrice) ? minProductPrice : 0,
+      maxProductPrice: isFinite(maxProductPrice) ? maxProductPrice : 0,
+      isWishlisted: wishlistProductIds.has(p._id.toString()),
       averageRating: Number(review.averageRating?.toFixed(1)) || 0,
       totalReviews: review.totalReviews,
     };
   });
 
-  // ✅ Calculate store's overall rating
-  // Get all productIds for this store (not only paginated ones)
-  const allStoreProducts = await storeProductModel
-    .find({ storeId })
-    .select("_id")
-    .lean();
-
+  // ✅ Store rating
+  const allStoreProducts = await storeProductModel.find({ storeId }).select("_id").lean();
   const allProductIds = allStoreProducts.map((p) => p._id);
-
   const storeRatingAgg = await productReviewModel.aggregate([
     { $match: { productId: { $in: allProductIds } } },
     {
@@ -743,13 +815,11 @@ export const getStoreAndProductsByidService = async (
       },
     },
   ]);
-
   const storeRatingData = storeRatingAgg[0] || {
     overallAverageRating: 0,
     totalStoreReviews: 0,
   };
 
-  // ✅ Final response
   return {
     success: true,
     message: "Store and products fetched successfully",

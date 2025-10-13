@@ -54,7 +54,7 @@ export const getAllStoresService = async (payload: any) => {
   // ✅ Fetch stores (with pagination + sort)
   const stores = await storeModel
     .find(query)
-    .sort(sort)
+    .sort({createdAt: -1})
     .skip(offset)
     .limit(limit)
     .select("-password")

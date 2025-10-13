@@ -63,7 +63,7 @@ export const getAllStoreProductsService = async (storeId:any,payload: any) => {
 
     const products = await storeProductModel
       .find(query)
-      .sort(sort)
+      .sort({createdAt: -1})
       .skip(offset)
       .limit(limit)
       .lean();
@@ -308,7 +308,7 @@ export const getAllStoreProductsForAdminService = async (payload: any) => {
   // Fetch paginated products
   const products = await storeProductModel
     .find(query)
-    .sort(sort)
+    .sort({createdAt: -1})
     .skip(offset)
     .limit(limit)
     .populate("storeId", "storeName")

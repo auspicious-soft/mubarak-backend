@@ -302,7 +302,7 @@ export const getAllUserProductsForAdminService = async (query: any) => {
   const totalProducts = await userProductModel.countDocuments(searchQuery);
   const products = await userProductModel
     .find(searchQuery)
-    .sort(sort)
+    .sort({ createdAt: -1 })
     .collation({ locale: "en", strength: 2 })
     .skip(offset)
     .limit(limit)

@@ -61,7 +61,7 @@ export const getAllPromotionsService = async (payload: any) => {
     const promotions = await promotionsModel
       .find(query)
       .populate('storeName', 'storeName email')
-      .sort(sort)
+      .sort({createdAt: -1})
       .skip(offset)
       .limit(limit);
 
