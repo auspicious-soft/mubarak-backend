@@ -51,7 +51,7 @@ connectDB();
 app.get("/", (_, res: any) => {
     res.send("Hello world entry point 🚀✅");
 });
-
+ 
 app.use("/api/admin", checkValidAdminRole, checkWebAuth, admin);
 app.use("/api/store", checkValidStoreRole, checkWebAuth, store);
 app.use("/api/user", user);
