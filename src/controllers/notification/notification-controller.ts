@@ -14,7 +14,7 @@ export const sendNotification = async (req: Request, res: Response) => {
         message: "Type, title, and description are required",
       });
     }
- 
+  
     const response = await sendNotificationService({
       type,
       title,
