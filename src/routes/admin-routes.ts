@@ -56,5 +56,5 @@ router.route("/promotions/:id").get(getPromotionById).put(updatePromotion).delet
 
 // Notification&Announcements
 router.route("/notification").post(sendNotification);
-
+ 
 export { router };
