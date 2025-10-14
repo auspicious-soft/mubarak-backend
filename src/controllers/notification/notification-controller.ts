@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import { sendNotificationService } from "../../services/notification/notification-service";
 import { httpStatusCode } from "../../lib/constant";
 import { errorParser } from "../../lib/errors/error-response-handler";
-
+ 
 export const sendNotification = async (req: Request, res: Response) => {
   try {
     const { type, title, description, storeIds, sendToSpecific } = req.body;
