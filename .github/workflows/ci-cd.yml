@@ -83,6 +83,7 @@ jobs:
               -e AWS_BUCKET_NAME='${{ secrets.FIREBASE_PROJECT_ID }}' \
               -e AWS_BUCKET_NAME='${{ secrets.FIREBASE_CLIENT_EMAIL }}' \
               -e AWS_BUCKET_NAME='${{ secrets.FIREBASE_PRIVATE_KEY }}' \
+              -e AWS_BUCKET_NAME='${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' \
               ${{ secrets.DOCKER_USERNAME }}/mubarak-backend:latest || { echo 'Docker run failed'; exit 1; }
 
             echo 'Container running successfully'

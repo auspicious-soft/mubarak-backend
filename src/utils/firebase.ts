@@ -1,14 +1,35 @@
-// utils/firebase.ts
 import admin from "firebase-admin";
+import dotenv from "dotenv";
+
+// ✅ Load environment variables from .env file
+const dotenvResult = dotenv.config();
+
+if (dotenvResult.error) {
+  console.error("❌ Error loading .env file:", dotenvResult.error);
+} else {
+  console.log("✅ .env file loaded successfully");
+}
 
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    }),
-  });
+  try {
+    if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT env variable is not defined.");
+    }
+
+    console.log("ℹ️ Parsing FIREBASE_SERVICE_ACCOUNT...");
+
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+
+    console.log("✅ Service account parsed successfully. Initializing Firebase...");
+
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+
+    console.log("✅ Firebase Admin initialized.");
+  } catch (error) {
+    console.error("❌ Failed to initialize Firebase Admin:", error);
+  }
 }
 
 export const fcm = admin.messaging();
