@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { httpStatusCode } from '../../lib/constant';
-import { addToCartService, clearCartService, getCartService, removeCartItemService, updateCartItemService } from '../../services/cart/cart-service';
+import { addOrUpdateCartAddressService, addToCartService, clearCartService, getCartService, removeCartItemService, updateCartItemService } from '../../services/cart/cart-service';
 import { errorParser } from '../../lib/errors/error-response-handler';
 
 // Add item to cart
@@ -133,6 +133,24 @@ export const clearCart = async (req: Request, res: Response) => {
     }
 
     const response = await clearCartService(userId,res);
+    return res.status(httpStatusCode.OK).json(response);
+  } catch (error: any) {
+    const { code, message } = errorParser(error);
+    return res
+      .status(code || httpStatusCode.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: message || "An error occurred" });
+  }
+};
+export const addOrUpdateCartAddress = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(httpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: "User ID is required"
+      });
+    }
+    const response = await addOrUpdateCartAddressService(userId,req.params.id,res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);

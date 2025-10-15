@@ -13,6 +13,7 @@ import {
   getUserHomeService,
   getUserHomeStoresService,
   getStoreAndProductsByidService,
+  deactivateAccountService,
  
 } from "../../services/users/users-service";
 
@@ -165,6 +166,24 @@ export const getStoreAndProductsByid = async (req: Request, res: Response) => {
     const role = req.headers.role?.toString().toLowerCase();
     const userId = role === "guest" ? null  : (req as any).user?.id ;
     const response = await getStoreAndProductsByidService(userId,req.body,req.params.id, res);
+    return res.status(httpStatusCode.OK).json(response);
+  } catch (error: any) {
+    const { code, message } = errorParser(error);
+    return res
+      .status(code || httpStatusCode.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: message || "An error occurred" });
+  }
+};
+export const deactivateAccount = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+        if (!userId) {
+          return res.status(httpStatusCode.BAD_REQUEST).json({
+            success: false,
+            message: "User ID is required"
+          });
+        }
+    const response = await deactivateAccountService(userId, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);

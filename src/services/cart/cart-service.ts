@@ -3,6 +3,7 @@ import { cartModel } from '../../models/cart/cart-schema';
 import { errorResponseHandler } from '../../lib/errors/error-response-handler';
 import { httpStatusCode } from '../../lib/constant';
 import { storeProductModel } from '../../models/store-products/store-products-schema';
+import { AddressModel } from '../../models/address/address-schema';
 
 interface CartItemInput {
   storeProduct: string;
@@ -81,7 +82,14 @@ export const getCartService = async (userId: string, res: Response) => {
 
   const cart = await cartModel
     .findOne({ userId })
-    .populate('items.storeProduct') // populate storeProduct
+    .populate({
+      path: "items.storeProduct",
+      populate: {
+        path: "storeId",
+        model: "store",
+        select: "storeName discount",
+      },
+    })
     .lean();
 
   if (!cart) {
@@ -92,40 +100,64 @@ export const getCartService = async (userId: string, res: Response) => {
         userId,
         items: [],
         totalItems: 0,
-        totalPrice: 0
-      }
+        totalOriginalPrice: 0,
+        totalDiscountedPrice: 0,
+        totalSavings: 0,
+      },
     };
   }
 
-  let overallTotalPrice = 0;
+  let totalOriginalPrice = 0;
+  let totalDiscountedPrice = 0;
 
-  // Map selectedPriceDetail from storeProduct.priceDetails
   (cart as any).items = cart.items.map((item: any) => {
-    const selectedDetail = item.storeProduct.priceDetails.find(
-      (pd: any) =>
-        pd._id.toString() === item.selectedPriceDetail.toString()
+    const storeProduct = item.storeProduct;
+    const storeDiscount = storeProduct?.storeId?.discount || 0;
+
+    // find selected price detail
+    const selectedDetail = storeProduct?.priceDetails.find(
+      (pd: any) => pd._id.toString() === item.selectedPriceDetail.toString()
     );
 
-    const itemTotalPriceNumber = selectedDetail
-  ? Number((selectedDetail.price * item.quantity).toFixed(2))
-  : 0;
+    const basePrice = selectedDetail ? selectedDetail.price : 0;
+    const quantity = item.quantity || 1;
 
-    overallTotalPrice += itemTotalPriceNumber;
+    // price calculations
+    const originalItemTotal = Number((basePrice * quantity).toFixed(2));
+    const discountedUnitPrice =
+      basePrice - (basePrice * storeDiscount) / 100;
+    const discountedItemTotal = Number(
+      (discountedUnitPrice * quantity).toFixed(2)
+    );
+
+    totalOriginalPrice += originalItemTotal;
+    totalDiscountedPrice += discountedItemTotal;
 
     return {
       ...item,
       selectedPriceDetail: selectedDetail || null,
-      totalPrice: itemTotalPriceNumber // total price of this item
+      basePrice,
+      storeDiscount,
+      discountedPrice: Number(discountedUnitPrice.toFixed(2)),
+      totalPrice: discountedItemTotal,
+      originalTotal: originalItemTotal,
+      savings: Number((originalItemTotal - discountedItemTotal).toFixed(2)),
     };
   });
+
+  const totalSavings = Number(
+    (totalOriginalPrice - totalDiscountedPrice).toFixed(2)
+  );
 
   return {
     success: true,
     message: "Cart fetched successfully",
     data: {
       ...cart,
-      totalPrice: overallTotalPrice // total price of the entire cart
-    }
+      totalPrice: Number(totalOriginalPrice.toFixed(2)),
+      totalDiscountedPrice: Number(totalDiscountedPrice.toFixed(2)),
+      totalSavings,
+    },
   };
 };
 
@@ -270,3 +302,50 @@ export const clearCartService = async (userId: string, res: Response) => {
     data: cart
   };
 };
+export const addOrUpdateCartAddressService = async (
+  userId: string,
+  addressId: string,
+  res: Response
+) => {
+    if (!userId || !addressId) {
+      return errorResponseHandler(
+        "User ID and Address ID are required",
+        httpStatusCode.BAD_REQUEST,
+        res
+      );
+    }
+
+    // ✅ Check if the address exists and belongs to the same user
+    const address = await AddressModel.findOne({ _id: addressId, userId });
+    if (!address) {
+      return errorResponseHandler(
+        "Address not found or does not belong to the user",
+        httpStatusCode.NOT_FOUND,
+        res
+      );
+    }
+
+    // ✅ Find or create user's cart
+    let cart = await cartModel.findOne({ userId });
+    if (!cart) {
+      cart = new cartModel({
+        userId,
+        items: [],
+        addressId,
+      });
+    } else {
+      // Update existing cart with selected address
+      (cart as any).addressId = addressId;
+    }
+
+    await cart.save();
+
+    // ✅ Populate address details before returning
+    await cart.populate("addressId");
+
+    return {
+      success: true,
+      message: "Address added to cart successfully",
+      data: cart,
+    };
+  }

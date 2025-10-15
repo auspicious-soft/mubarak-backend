@@ -11,6 +11,7 @@ import {
   getUserHome,
   getUserHomeStores,
   getStoreAndProductsByid,
+  deactivateAccount,
 } from "../controllers/users/users-controller";
 import {
   createUserProduct,
@@ -33,6 +34,7 @@ import {
   toggleWishlist,
 } from "../controllers/wishlist/wishlist-controller";
 import {
+  addOrUpdateCartAddress,
   addToCart,
   clearCart,
   getCart,
@@ -62,6 +64,8 @@ router.route("/:id").get(authMiddleware, getUserById);
 router.route("/crud")
   .put(authMiddleware, updateUser)
   .delete(authMiddleware, deleteUser);
+
+ router.post("/deactivate",authMiddleware,deactivateAccount) 
 
 //User-product routes
 router.post("/user-products", authMiddleware, createUserProduct);
@@ -105,6 +109,8 @@ router
   .route("/cart/item/:itemId")
   .patch(authMiddleware, updateCartItem)
   .post(authMiddleware, removeCartItem);
+
+router.post("/cart/address/:id", authMiddleware, addOrUpdateCartAddress); // Update to use POST method
 
 //Open-market routes
 router.post("/open-market/products", authMiddleware, getAllUserProducts);

@@ -30,6 +30,11 @@ const cartSchema = new Schema({
     required: true,
     unique: true // One cart per user
   },
+  addressId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'address', // ✅ Reference to AddressModel
+    default: null,  // can be null if address not yet selected
+  },
   items: {
     type: [cartItemSchema],
     default: []

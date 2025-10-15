@@ -140,6 +140,14 @@ export const loginUserService = async (payload: any, res: Response) => {
       res
     );
   }
+  
+  if (user.isDeactivated) {
+    return errorResponseHandler(
+      "This account has been deactivated and cannot log in.",
+      httpStatusCode.FORBIDDEN,
+      res
+    );
+  }
 
   // Generate OTP for verification
   const otp = await generatePasswordResetTokenByPhone(phoneNumber);
@@ -839,3 +847,36 @@ export const getStoreAndProductsByidService = async (
     },
   };
 };
+
+export const deactivateAccountService = async (
+  userId: string,
+  res: Response
+) => {
+    if (!userId) {
+      return errorResponseHandler(
+        "User ID is required",
+        httpStatusCode.BAD_REQUEST,
+        res
+      );
+    }
+
+    // ✅ Find user
+    const user = await usersModel.findById(userId);
+    if (!user) {
+      return errorResponseHandler(
+        "User not found",
+        httpStatusCode.NOT_FOUND,
+        res
+      );
+    }
+
+    // ✅ Deactivate account
+    user.isDeactivated = true;
+    await user.save();
+
+    return {
+      success: true,
+      message: "Account deactivated successfully",
+      data: { userId: user._id, isDeactivated: user.isDeactivated },
+    }
+  }
