@@ -8,7 +8,9 @@ import {
   getStoreByIdService,
   updateStoreService,
   deleteStoreService,
-  getStoreProfileService
+  getStoreProfileService,
+  getStoreNotificationsService,
+  markAllNotificationsAsReadService
 } from "../../services/stores/stores-service";
 
 
@@ -109,4 +111,41 @@ export const deleteStore = async (req: Request, res: Response) => {
       .json({ success: false, message: message || "An error occurred" });
   }
 };
-
+export const getStoreNotifications = async (req: Request, res: Response) => {
+  try {
+    const storeId = (req as any).user?.id;
+    
+    if (!storeId) {
+      return res.status(httpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: "Store ID is required"
+      });
+    }
+    const response = await getStoreNotificationsService(storeId, req.query);
+    return res.status(httpStatusCode.OK).json(response);
+  } catch (error: any) {
+    const { code, message } = errorParser(error);
+    return res
+      .status(code || httpStatusCode.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: message || "An error occurred" });
+  }
+};
+export const markAllNotificationsAsRead = async (req: Request, res: Response) => {
+  try {
+    const storeId = (req as any).user?.id;
+    
+    if (!storeId) {
+      return res.status(httpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: "Store ID is required"
+      });
+    }
+    const response = await markAllNotificationsAsReadService(storeId);
+    return res.status(httpStatusCode.OK).json(response);
+  } catch (error: any) {
+    const { code, message } = errorParser(error);
+    return res
+      .status(code || httpStatusCode.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: message || "An error occurred" });
+  }
+};

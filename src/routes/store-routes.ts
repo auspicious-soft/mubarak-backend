@@ -1,6 +1,6 @@
 import { Router } from "express";
 import {  getAdminDetails,  } from "../controllers/admin/admin-controller";
-import { createStore, deleteStore, getAllStores, getStoreById, getStoreProfile, getStoreProfileByToken, updateStore, updateStoreByToken } from "../controllers/stores/store-controller";
+import { createStore, deleteStore, getAllStores, getStoreById, getStoreNotifications, getStoreProfile, getStoreProfileByToken, markAllNotificationsAsRead, updateStore, updateStoreByToken } from "../controllers/stores/store-controller";
 import {
   createStoreProduct,
   getAllStoreProducts,
@@ -22,5 +22,9 @@ router.route("/profile-detail").get(getStoreProfileByToken).put(updateStoreByTok
 router.route("/store-products").post(createStoreProduct).get(getAllStoreProducts);
 router.route("/store-products/:id").get(getStoreProductById).put(updateStoreProduct).delete(deleteStoreProduct);
 router.route("/:storeId/store-products").get(getStoreProductsByStoreIdForAdmin);
+
+router.get("/notifications", getStoreNotifications);
+// Mark all notifications as read
+router.patch("/notifications/read-all", markAllNotificationsAsRead);
 
 export { router };

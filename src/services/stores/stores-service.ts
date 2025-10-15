@@ -6,6 +6,7 @@ import { queryBuilder } from "../../utils";
 import { storeModel } from "../../models/stores/stores-schema";
 import { productReviewModel } from "../../models/review/review-schema";
 import { storeProductModel } from "../../models/store-products/store-products-schema";
+import { notificationModel } from "../../models/notification/notification-schema";
 
 // Create Store
 export const createStoreService = async (payload: any, res: Response) => {
@@ -203,4 +204,92 @@ export const deleteStoreService = async (id: string, res: Response) => {
     success: true,
     message: "Store deleted successfully"
   };
+};
+export const getStoreNotificationsService = async (
+  storeId: string,
+  query: any
+) => {
+    const { page = 1, limit = 10, isRead } = query;
+    
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build filter query
+    const filter: any = {
+      type: "store",
+      "recipients.recipientId": storeId,
+    };
+
+    // Optional: Filter by read/unread status
+    if (isRead !== undefined) {
+      filter["recipients.isRead"] = isRead === "true";
+    }
+
+    // Fetch notifications with pagination
+    const notifications = await notificationModel
+      .find(filter)
+      .sort({ createdAt: -1 }) // Most recent first
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    // Get total count for pagination
+    const totalNotifications = await notificationModel.countDocuments(filter);
+
+    // Extract the specific recipient data for this store
+    const formattedNotifications = notifications.map((notification: any) => {
+      const recipient = notification.recipients.find(
+        (r: any) => r.recipientId.toString() === storeId
+      );
+      
+      return {
+        _id: notification._id,
+        title: notification.title,
+        description: notification.description,
+        type: notification.type,
+        isRead: recipient?.isRead || false,
+        createdAt: notification.createdAt,
+        updatedAt: notification.updatedAt,
+      };
+    });
+
+    return {
+      success: true,
+      message: "Notifications retrieved successfully",
+      data: {
+        notifications: formattedNotifications,
+        pagination: {
+          currentPage: pageNum,
+          totalPages: Math.ceil(totalNotifications / limitNum),
+          totalNotifications,
+          limit: limitNum,
+        },
+      },
+    };
+};
+
+export const markAllNotificationsAsReadService = async (storeId: string) => {
+    const result = await notificationModel.updateMany(
+      {
+        type: "store",
+        "recipients.recipientId": storeId,
+        "recipients.isRead": false,
+      },
+      {
+        $set: { "recipients.$[elem].isRead": true },
+      },
+      {
+        arrayFilters: [{ "elem.recipientId": storeId }],
+      }
+    );
+
+    return {
+      success: true,
+      message: "All notifications marked as read",
+      data: {
+        modifiedCount: result.modifiedCount,
+      },
+    };
+
 };
