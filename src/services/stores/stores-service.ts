@@ -147,11 +147,12 @@ export const getStoreByIdService = async (id: string, res: Response) => {
   if (!store) {
     return errorResponseHandler("Store not found", httpStatusCode.NOT_FOUND, res);
   }
+  const products = await storeProductModel.countDocuments({ storeId: id });
 
   return {
     success: true,
     message: "Store retrieved successfully",
-    data: store
+    data: { store, products }
   };
 };
 export const getStoreProfileService = async (id: string, res: Response) => {
