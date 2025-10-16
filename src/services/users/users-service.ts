@@ -19,6 +19,7 @@ import { wishlistModel } from "../../models/wishlist/wishlist-schema";
 import mongoose, { Types } from "mongoose";
 import { productReviewModel } from "../../models/review/review-schema";
 import { promotionsModel } from "../../models/promotion/promotion-schema";
+import { adminModel } from "../../models/admin/admin-schema";
 interface PaginationParams {
   page?: number;
   limit?: number;
@@ -60,12 +61,33 @@ export const createUserService = async (payload: any, res: Response) => {
     }
   }
 
-  const [existingUserByEmail, existingUserByPhone] = await Promise.all([
+  // ✅ Check if phone/email already exist in users, admin, or store collections
+  const [
+    existingUserByEmail,
+    existingUserByPhone,
+    existingAdminByEmail,
+    existingAdminByPhone,
+    existingStoreByEmail,
+    existingStoreByPhone,
+  ] = await Promise.all([
     email ? usersModel.findOne({ email }).lean() : null,
     usersModel.findOne({ phoneNumber }).lean(),
+    email ? adminModel.findOne({ email }).lean() : null,
+    adminModel.findOne({ phoneNumber }).lean(),
+    email ? storeModel.findOne({ email }).lean() : null,
+    storeModel.findOne({ phoneNumber }).lean(),
   ]);
 
-  if (existingUserByEmail || existingUserByPhone) {
+  // ❌ If email or phone already exists in any collection, return error
+  if (
+    existingUserByEmail ||
+    existingUserByPhone ||
+    existingAdminByEmail ||
+    existingAdminByPhone ||
+    existingStoreByEmail ||
+    existingStoreByPhone
+  ) {
+    // Handle unverified user special case
     if (existingUserByPhone && !existingUserByPhone.isVerified) {
       const otp = await generatePasswordResetTokenByPhone(phoneNumber);
       await generatePasswordResetTokenByPhoneWithTwilio(phoneNumber, otp.token);
@@ -78,9 +100,17 @@ export const createUserService = async (payload: any, res: Response) => {
     }
 
     let message = "User with ";
-    if (existingUserByEmail && existingUserByPhone) {
+
+    if (
+      (existingUserByEmail || existingAdminByEmail || existingStoreByEmail) &&
+      (existingUserByPhone || existingAdminByPhone || existingStoreByPhone)
+    ) {
       message += "this email and phone number already exists.";
-    } else if (existingUserByEmail) {
+    } else if (
+      existingUserByEmail ||
+      existingAdminByEmail ||
+      existingStoreByEmail
+    ) {
       message += "this email already exists.";
     } else {
       message += "this phone number already exists.";
@@ -89,21 +119,16 @@ export const createUserService = async (payload: any, res: Response) => {
     return errorResponseHandler(message, httpStatusCode.BAD_REQUEST, res);
   }
 
-  // Create userData object without email if it's not provided
+  // ✅ Prepare new user data
   const userData: any = {
     ...payload,
     isVerified: false,
   };
 
-  // Only include email if it exists and is valid
-  if (email) {
-    userData.email = email;
-  } else {
-    // Completely remove email field instead of setting to null/undefined
-    delete userData.email;
-  }
+  if (email) userData.email = email;
+  else delete userData.email;
 
-  console.log("Creating user:", userData); // Debug log
+  console.log("Creating user:", userData);
 
   const user = await usersModel.create(userData);
 
