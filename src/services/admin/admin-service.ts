@@ -66,15 +66,30 @@ export const loginService = async (payload: any, res: Response) => {
 };
  
 export const forgotPasswordService = async (phoneNumber: string, res: Response) => {
-  const admin = await adminModel.findOne({ phoneNumber: phoneNumber }).select("+password");
-  // if (!admin) return errorResponseHandler("Phone number not found", httpStatusCode.NOT_FOUND, res);
+  // Check in both admin and store collections
+  const admin = await adminModel.findOne({ phoneNumber }).select("-password");
+  const store = await storeModel.findOne({ phoneNumber }).select("-password");
+
+  // ❌ If not found in either collection, return error
+  if (!admin && !store) {
+    return errorResponseHandler(
+      "Phone number not found in our records",
+      httpStatusCode.NOT_FOUND,
+      res
+    );
+  }
+
+  // ✅ Generate reset token
   const passwordResetToken = await generatePasswordResetToken(phoneNumber);
-  console.log('passwordResetToken: ', passwordResetToken);
- 
+  console.log("passwordResetToken: ", passwordResetToken);
+
   if (passwordResetToken !== null) {
     await generatePasswordResetTokenByPhoneWithTwilio(phoneNumber, passwordResetToken.token);
-    return { success: true, message: "Password reset email sent with otp", status:200 };
+    return { success: true, message: "Password reset OTP sent successfully", status: 200 };
   }
+
+  // In case something goes wrong
+  return errorResponseHandler("Failed to generate OTP", httpStatusCode.INTERNAL_SERVER_ERROR, res);
 };
 export const verifyOtpPasswordResetService = async (
   token: string,
