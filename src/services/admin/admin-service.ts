@@ -11,6 +11,8 @@ import { generatePasswordResetToken, getPasswordResetTokenByToken } from './../.
 import { generatePasswordResetTokenByPhoneWithTwilio } from "../../utils/sms/sms";
 import { storeModel } from "../../models/stores/stores-schema";
 import jwt from "jsonwebtoken";
+import { usersModel } from "../../models/users/users-schema";
+import { storeProductModel } from "../../models/store-products/store-products-schema";
  
  
 export const loginService = async (payload: any, res: Response) => {
@@ -278,65 +280,14 @@ export const getNewUsersService = async (payload: any) => {
 // };
 
 // // Dashboard
-// export const getDashboardStatsService = async (payload: any, res: Response) => {
-//   try {
-//     const overviewDuration = payload.overviewDuration ? parseInt(payload.overviewDuration) : null;
-//     const usersDuration = payload.usersDuration ? parseInt(payload.usersDuration) : null;
-
-//     let overviewDate: Date | null = new Date();
-//     if (overviewDuration === 30 || overviewDuration === 7) {
-//       overviewDate.setDate(overviewDate.getDate() - overviewDuration);
-//     } else {
-//       overviewDate = null;
-//     }
-
-//     let usersDate: Date | null = new Date();
-//     if (usersDuration === 30 || usersDuration === 7) {
-//       usersDate.setDate(usersDate.getDate() - usersDuration);
-//     } else {
-//       usersDate = null;
-//     }
-
-//     const users = await usersModel   .find(usersDate ? { createdAt: { $gte: usersDate } } : {})
-//     .sort({ createdAt: -1 })
-//     .limit(10).select("-__v -password -otp -token -fcmToken -whatsappNumberVerified -emailVerified");
-
-//       const userIds = users.map((user) => user._id);
-//       const awards = await awardsModel.find({ userId: { $in: userIds } }).select("userId level badge");
-
-//       const awardsMap = new Map(awards.map((award) => [award.userId.toString(), award]));
-
-//       const newestUsers = users.map((user) => ({
-//         ...user.toObject(),
-//         award: awardsMap.get(user._id.toString()) || null,
-//       }));
-
-//     const newestEvents = await eventsModel
-//       .find(usersDate ? { createdAt: { $gte: usersDate } } : {})
-//       .sort({ createdAt: -1 })
-//       .limit(10)
-//       .select("-__v");
-//     const newUsersCount = await usersModel.countDocuments(overviewDate ? { createdAt: { $gte: overviewDate } } : {});
-//     const eventsCount = await eventsModel.countDocuments(overviewDate ? { createdAt: { $gte: overviewDate } } : {});
-//     const newBooks = await productsModel.countDocuments(overviewDate ? { createdAt: { $gte: overviewDate } } : {});
-//     const totalRevenueResult = await ordersModel.aggregate([{ $match: overviewDate ? { createdAt: { $gte: overviewDate } } : {} }, { $group: { _id: null, totalRevenue: { $sum: "$totalAmount" } } }]);
-
-//     const totalRevenue = totalRevenueResult.length > 0 ? totalRevenueResult[0].totalRevenue : 0;
-
-//     return {
-//       success: true,
-//       message: "Dashboard stats fetched successfully",
-//       data: {
-//         newestUsers,
-//         newestEvents,
-//         newUsersCount,
-//         eventsCount,
-//         newBooks,
-//         totalRevenue,
-//       },
-//     };
-//   } catch (error) {
-//     console.error("Error fetching dashboard stats:", error); // Log the error for debugging
-//     return errorResponseHandler("Failed to fetch dashboard stats", httpStatusCode.INTERNAL_SERVER_ERROR, res);
-//   }
-// };
+export const getDashboardStatsService = async (req: any, res: Response) => {
+  const userCount = await usersModel.countDocuments();
+  const storeCount = await storeModel.countDocuments();
+  const storeProducts = await storeProductModel.countDocuments();
+   
+  return{
+    success: true,
+    message: "Dashboard stats retrieved successfully",
+    data: { userCount, storeCount, storeProducts }
+  }
+};

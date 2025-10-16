@@ -3,7 +3,8 @@ import { formatZodErrors } from "../../validation/format-zod-errors";
 import { loginService, newPassswordAfterOTPVerifiedService, forgotPasswordService,
      getNewUsersService, getAdminDetailsService,
      verifyOtpPasswordResetService,
-     getAdminDetailsServiceById} from "../../services/admin/admin-service";
+     getAdminDetailsServiceById,
+     getDashboardStatsService} from "../../services/admin/admin-service";
 import { errorParser } from "../../lib/errors/error-response-handler";
 import { httpStatusCode } from "../../lib/constant";
 
@@ -106,13 +107,13 @@ export const newPassswordAfterOTPVerified = async (req: Request, res: Response) 
 // }
 
 
-// export const getDashboardStats = async (req: Request, res: Response) => {
-//     try {
-//         const response = await getDashboardStatsService(req.query, res)
-//         return res.status(httpStatusCode.OK).json(response)
-//     } catch (error: any) {
-//         const { code, message } = errorParser(error)
-//         return res.status(code || httpStatusCode.INTERNAL_SERVER_ERROR).json({ success: false, message: message || "An error occurred" });
-//     }
-// }
+export const getDashboardStats = async (req: Request, res: Response) => {
+    try {
+        const response = await getDashboardStatsService(req, res)
+        return res.status(httpStatusCode.OK).json(response)
+    } catch (error: any) {
+        const { code, message } = errorParser(error)
+        return res.status(code || httpStatusCode.INTERNAL_SERVER_ERROR).json({ success: false, message: message || "An error occurred" });
+    }
+}
 
