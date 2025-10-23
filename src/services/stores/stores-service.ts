@@ -7,16 +7,17 @@ import { storeModel } from "../../models/stores/stores-schema";
 import { productReviewModel } from "../../models/review/review-schema";
 import { storeProductModel } from "../../models/store-products/store-products-schema";
 import { notificationModel } from "../../models/notification/notification-schema";
+import { sendStoreCredentials } from "../../utils/mails/mail";
 
 // Create Store
 export const createStoreService = async (payload: any, res: Response) => {
   const { email, phoneNumber } = payload;
 
   // Check if store already exists
-  const existingStore = await storeModel.findOne({ 
-    $or: [{ email }, { phoneNumber }] 
+  const existingStore = await storeModel.findOne({
+    $or: [{ email }, { phoneNumber }],
   });
-  
+
   if (existingStore) {
     return errorResponseHandler(
       "Store with this email or phone number already exists",
@@ -25,18 +26,32 @@ export const createStoreService = async (payload: any, res: Response) => {
     );
   }
 
-  // Hash password
+  // Hash password but keep a copy for email
+  let plainPassword = payload.password;
   if (payload.password) {
     payload.password = await bcrypt.hash(payload.password, 10);
   }
 
+  // Create store
   const store = await storeModel.create(payload);
   const storeObject = store.toObject();
+
+  // Send credentials email
+  try {
+    await sendStoreCredentials({
+      email: storeObject.email,
+      password: plainPassword,
+      role: storeObject.role || "store",
+      name: storeObject.ownerName,
+    });
+  } catch (error) {
+    console.error("Error sending store credentials email:", error);
+  }
 
   return {
     success: true,
     message: "Store created successfully",
-    data: storeObject
+    data: storeObject,
   };
 };
 

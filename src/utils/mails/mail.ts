@@ -66,3 +66,11 @@ export const addedUserCreds = async (payload: any) => {
         text: `Hello ${payload.name ? payload.name.eng :payload.fullName.eng},\n\nYour account has been created with the following credentials:\n\nEmail: ${payload.email}\nPassword: ${payload.password}\nRole: ${payload.role}\n\nPlease keep this information secure.`,
     })
 }
+export const sendStoreCredentials = async (payload: any) => {
+  await resend.emails.send({
+    from: process.env.COMPANY_RESEND_GMAIL_ACCOUNT as string,
+    to: payload.email,
+    subject: "Your Store Account Credentials",
+    text: `Hello ${payload.name?.eng || payload.fullName?.eng || "User"},\n\nYour store account has been created successfully.\n\nHere are your credentials:\n\nEmail: ${payload.email}\nPassword: ${payload.password}\nRole: ${payload.role}\n\nPlease keep this information secure.\n\nBest regards,\nYour Company Team`,
+  });
+};
