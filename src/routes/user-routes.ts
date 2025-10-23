@@ -12,6 +12,7 @@ import {
   getUserHomeStores,
   getStoreAndProductsByid,
   deactivateAccount,
+  getUserByToken,
 } from "../controllers/users/users-controller";
 import {
   createUserProduct,
@@ -60,6 +61,7 @@ router.post("/resend-otp", resendOTP);
 
 // CRUD routes
 router.route("/").get(getAllUsers);
+router.get("/token",getUserByToken)
 router.route("/:id").get(authMiddleware, getUserById);
 router.route("/crud")
   .put(authMiddleware, updateUser)
