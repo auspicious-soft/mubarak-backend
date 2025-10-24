@@ -13,6 +13,7 @@ import {
   getStoreAndProductsByid,
   deactivateAccount,
   getUserByToken,
+  logoutUser,
 } from "../controllers/users/users-controller";
 import {
   createUserProduct,
@@ -67,7 +68,8 @@ router.route("/crud")
   .put(authMiddleware, updateUser)
   .delete(authMiddleware, deleteUser);
 
- router.post("/deactivate",authMiddleware,deactivateAccount) 
+router.post("/deactivate",authMiddleware,deactivateAccount) 
+router.post("/logout", authMiddleware, logoutUser);
 
 //User-product routes
 router.post("/user-products", authMiddleware, createUserProduct);

@@ -67,7 +67,6 @@ export const getAllStoreProductsForAdmin = async (req: Request, res: Response) =
 export const getStoreProductById = async (req: Request, res: Response) => {
   try {
    const role = req.headers.role?.toString().toLowerCase();
-     console.log('role:', role);
     const userId = role === "guest" ? null  : (req as any).user?.id ;
     const response = await getStoreProductByIdService(req.params.id,userId, res);
     return res.status(httpStatusCode.OK).json(response);
@@ -103,7 +102,6 @@ export const deleteStoreProduct = async (req: Request, res: Response) => {
           });
         }
         const role = (req as any).user?.role;
-        console.log('role:', role);
     const response = await deleteStoreProductService(req.params.id,userId,role, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
@@ -126,7 +124,6 @@ export const getStoreProductsByStoreIdForAdmin = async (req: Request, res: Respo
       });
     }
       const role = req.headers.role?.toString().toLowerCase();
-     console.log('role:', role);
     const userId = role === "guest" ? null  : (req as any).user?.id ;
     const response = await getStoreProductsByStoreIdForAdminService(storeId, req.query,userId);
     return res.status(httpStatusCode.OK).json(response);

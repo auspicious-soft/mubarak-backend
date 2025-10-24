@@ -905,3 +905,22 @@ export const deactivateAccountService = async (
       data: { userId: user._id, isDeactivated: user.isDeactivated },
     }
   }
+
+  export const logoutUserService = async (userId: string,fcmToken: string,res: Response) => {
+  const user = await usersModel.findById(userId);
+
+  if (!user) {
+    return errorResponseHandler("User not found", httpStatusCode.NOT_FOUND, res);
+  }
+
+  // Remove the FCM token from the array
+  const updatedFcmTokens = user.fcmToken.filter((token) => token !== fcmToken);
+  user.fcmToken = updatedFcmTokens;
+
+  await user.save();
+
+  return {
+    success: true,
+    message: "User logged out successfully",
+  };
+};

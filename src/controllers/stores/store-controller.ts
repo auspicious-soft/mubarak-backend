@@ -65,7 +65,14 @@ export const getStoreProfile = async (req: Request, res: Response) => {
 };
 export const getStoreProfileByToken = async (req: Request, res: Response) => {
   try {
-    const response = await getStoreProfileService(req.user.id, res);
+      const storeId = (req as any).user?.id;    
+    if (!storeId) {
+      return res.status(httpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: "Store ID is required"
+      });
+    }
+    const response = await getStoreProfileService(storeId, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);
@@ -89,7 +96,14 @@ export const updateStore = async (req: Request, res: Response) => {
 };
 export const updateStoreByToken = async (req: Request, res: Response) => {
   try {
-    const response = await updateStoreService(req.user.id, req.body, res);
+     const storeId = (req as any).user?.id;    
+    if (!storeId) {
+      return res.status(httpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: "Store ID is required"
+      });
+    }
+    const response = await updateStoreService(storeId, req.body, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);
@@ -132,8 +146,7 @@ export const getStoreNotifications = async (req: Request, res: Response) => {
 };
 export const markAllNotificationsAsRead = async (req: Request, res: Response) => {
   try {
-    const storeId = (req as any).user?.id;
-    
+    const storeId = (req as any).user?.id;    
     if (!storeId) {
       return res.status(httpStatusCode.BAD_REQUEST).json({
         success: false,

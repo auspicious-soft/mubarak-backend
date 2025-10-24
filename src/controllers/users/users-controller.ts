@@ -14,6 +14,7 @@ import {
   getUserHomeStoresService,
   getStoreAndProductsByidService,
   deactivateAccountService,
+  logoutUserService,
  
 } from "../../services/users/users-service";
 
@@ -137,7 +138,6 @@ export const deleteUser = async (req: Request, res: Response) => {
 export const getUserHome = async (req: Request, res: Response) => {
   try {
      const role = req.headers.role?.toString().toLowerCase();
-     console.log('role:', role);
     const userId = role === "guest" ? null  : (req as any).user?.id ;
     const response = await getUserHomeService(userId, res,req.body,req.body);
     return res.status(httpStatusCode.OK).json(response);
@@ -202,6 +202,34 @@ export const getUserByToken = async (req: Request, res: Response) => {
           });
         }
     const response = await getUserByIdService(userId, res);
+    return res.status(httpStatusCode.OK).json(response);
+  } catch (error: any) {
+    const { code, message } = errorParser(error);
+    return res
+      .status(code || httpStatusCode.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: message || "An error occurred" });
+  }
+};
+export const logoutUser = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { fcmToken } = req.body;
+
+    if (!userId) {
+      return res.status(httpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    if (!fcmToken) {
+      return res.status(httpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: "FCM token is required for logout",
+      });
+    }
+
+    const response = await logoutUserService(userId, fcmToken, res);
     return res.status(httpStatusCode.OK).json(response);
   } catch (error: any) {
     const { code, message } = errorParser(error);
