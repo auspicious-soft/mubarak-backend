@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
+import { cascadeDeletePlugin } from "../../config/cascadeConfig";
 
 export interface IAddress extends Document {
   userId: mongoose.Schema.Types.ObjectId;
@@ -53,5 +54,6 @@ const addressSchema: Schema = new Schema<IAddress>(
   },
   { timestamps: true }
 );
+addressSchema.plugin(cascadeDeletePlugin, { modelName: 'address' })
 
 export const AddressModel = mongoose.model<IAddress>("address", addressSchema);

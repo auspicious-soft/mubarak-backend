@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { cascadeDeletePlugin } from "../../config/cascadeConfig";
 const Schema = mongoose.Schema;
 
 const wishlistSchema = new Schema(
@@ -28,5 +29,6 @@ const wishlistSchema = new Schema(
 
 // Ensure a user cannot add the same product twice
 wishlistSchema.index({ userId: 1, productId: 1, productType: 1 }, { unique: true });
+wishlistSchema.plugin(cascadeDeletePlugin, { modelName: 'wishlist' });
 
 export const wishlistModel = mongoose.model("wishlist", wishlistSchema);

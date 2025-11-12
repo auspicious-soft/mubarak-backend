@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { customAlphabet } from "nanoid";
+import { cascadeDeletePlugin } from "../../config/cascadeConfig";
 
 const identifier = customAlphabet("0123456789", 5);
 
@@ -68,5 +69,6 @@ const userSchema = new mongoose.Schema({
   },
   { timestamps: true }
 );
+userSchema.plugin(cascadeDeletePlugin, { modelName: 'user' });
 
 export const usersModel = mongoose.model("user", userSchema);

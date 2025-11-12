@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { cascadeDeletePlugin } from '../../config/cascadeConfig';
 const Schema = mongoose.Schema;
 
 // Schema for Cart Item
@@ -56,5 +57,6 @@ cartSchema.pre('save', function(next) {
 // Index for faster queries
 // cartSchema.index({ userId: 1 });
 cartSchema.index({ 'items.storeProduct': 1 });
+cartSchema.plugin(cascadeDeletePlugin, { modelName: 'cart' });
 
 export const cartModel = mongoose.model("cart", cartSchema);

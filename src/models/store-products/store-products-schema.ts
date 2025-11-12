@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { cascadeDeletePlugin } from '../../config/cascadeConfig';
 const Schema = mongoose.Schema;
 
 // Schema for Sub-Sections (used in Additional Sections)
@@ -133,5 +134,6 @@ const storeProductSchema = new Schema({
 //   this.updatedAt = Date.now();
 //   next();
 // });
+storeProductSchema.plugin(cascadeDeletePlugin, { modelName: 'storeProduct' });
 
 export const storeProductModel = mongoose.model("storeProduct", storeProductSchema);

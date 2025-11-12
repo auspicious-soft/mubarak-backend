@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { cascadeDeletePlugin } from "../../config/cascadeConfig";
 
 
 
@@ -21,5 +22,6 @@ const promotionsSchema = new mongoose.Schema({
   },
   { timestamps: true }
 );
+promotionsSchema.plugin(cascadeDeletePlugin, { modelName: 'promotion' });
 
 export const promotionsModel = mongoose.model("promotion", promotionsSchema);

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { cascadeDeletePlugin } from "../../config/cascadeConfig";
 
 const notificationSchema = new mongoose.Schema(
   {
@@ -44,6 +45,7 @@ const notificationSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+notificationSchema.plugin(cascadeDeletePlugin, { modelName: 'notification' });
 
 export const notificationModel = mongoose.model(
   "notification",

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { cascadeDeletePlugin } from "../../config/cascadeConfig";
 const Schema = mongoose.Schema;
 
 const reviewSchema = new Schema(
@@ -34,5 +35,6 @@ const reviewSchema = new Schema(
 
 // ✅ Prevent duplicate reviews by same user for same product
 reviewSchema.index({ productId: 1, userId: 1 }, { unique: true });
+reviewSchema.plugin(cascadeDeletePlugin, { modelName: 'productReview' });
 
 export const productReviewModel = mongoose.model("productReview", reviewSchema);
